@@ -52,7 +52,7 @@
   }
 </script>
 
-<div class="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+<div class="sticky" style="top: var(--header-height); z-index: 40; background: white; border-bottom: 1px solid #e5e7eb; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">
   <div class="max-w-[1280px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-3">
     <!-- 移动端：两行布局 -->
     <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">

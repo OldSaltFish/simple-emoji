@@ -1,6 +1,9 @@
-#app{
-    height: 100vh;
+body{
+    min-height: 100vh;
 }
 * {
     box-sizing: border-box;
+}
+:root {
+    --header-height: 64px;
 }
