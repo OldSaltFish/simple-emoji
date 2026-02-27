@@ -57,6 +57,14 @@
               ? 'bg-white text-blue-600 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'}">最近</a
           >
+          <a
+            href="/snippets"
+            class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
+              '/snippets',
+            )
+              ? 'bg-white text-blue-600 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'}">代码片段</a
+          >
           {#if isAdmin}
             <a
               href="/upload"
@@ -87,51 +95,59 @@
 
       <!-- 移动端导航 -->
       <nav class="md:hidden flex items-center bg-gray-100 rounded-lg p-1">
-        <a
-          href="/"
-          class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
-            '/',
-          )
-            ? 'bg-white text-blue-600 shadow-sm'
-            : 'text-gray-600'}">图集</a
-        >
-        <a
-          href="/recent"
-          class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
-            '/recent',
-          )
-            ? 'bg-white text-blue-600 shadow-sm'
-            : 'text-gray-600'}">最近</a
-        >
-        {#if isAdmin}
           <a
-            href="/upload"
+            href="/"
             class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
-              '/upload',
+              '/',
             )
               ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600'}">上传</a
+              : 'text-gray-600'}">图集</a
           >
           <a
-            href="/test"
+            href="/recent"
             class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
-              '/test',
+              '/recent',
             )
               ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600'}">test</a
+              : 'text-gray-600'}">最近</a
           >
-        {/if}
-        {#if isAdmin}
           <a
-            href="/admin"
+            href="/snippets"
             class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
-              '/admin',
+              '/snippets',
             )
-              ? 'bg-red-50 text-red-600 shadow-sm'
-              : 'text-red-500'}">管理</a
+              ? 'bg-white text-blue-600 shadow-sm'
+              : 'text-gray-600'}">代码</a
           >
-        {/if}
-      </nav>
+          {#if isAdmin}
+            <a
+              href="/upload"
+              class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
+                '/upload',
+              )
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600'}">上传</a
+            >
+            <a
+              href="/test"
+              class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
+                '/test',
+              )
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600'}">test</a
+            >
+          {/if}
+          {#if isAdmin}
+            <a
+              href="/admin"
+              class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
+                '/admin',
+              )
+                ? 'bg-red-50 text-red-600 shadow-sm'
+                : 'text-red-500'}">管理</a
+            >
+          {/if}
+        </nav>
     </div>
   </div>
 </header>

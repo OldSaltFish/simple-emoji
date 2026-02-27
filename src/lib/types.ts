@@ -32,6 +32,7 @@ export interface ImageTag {
 export interface FilterOptions {
   category?: string;
   tags?: string[];
+  framework?: string;
   search?: string;
   sortBy?: 'created_at' | 'size' | 'name';
   sortOrder?: 'asc' | 'desc';
@@ -57,3 +58,14 @@ export type ImageHostDto = Omit<ImageHost, 'header_params' | 'form_params'> & {
   header_params: string;
   form_params: string;
 };
+
+export interface CodeSnippet {
+  id: number;
+  title: string;
+  description?: string;
+  url: string;
+  cover_url?: string;
+  tags?: Tag[];
+  created_at: string;
+  updated_at?: string;
+}

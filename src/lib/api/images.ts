@@ -154,8 +154,9 @@ export class ImagesApi {
   }
 
   // 获取标签列表
-  async getTags(): Promise<Tag[]> {
-    const data = await apiClient.get(this.tagsEndpoint);
+  async getTags(kind?: string): Promise<Tag[]> {
+    const params = kind ? { kind } : undefined;
+    const data = await apiClient.get(this.tagsEndpoint, params);
     return data || [];
   }
 

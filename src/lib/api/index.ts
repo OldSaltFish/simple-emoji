@@ -2,6 +2,7 @@
 export { apiClient } from './client';
 export { imageHostsApi } from './imageHosts';
 export { imagesApi } from './images';
+export { codeSnippetsApi } from './codeSnippets';
 
 // 重新导出类型
 export type { 

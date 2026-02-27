@@ -24,6 +24,7 @@
 		"vite": "^7.2.2"
 	},
 	"dependencies": {
+		"@floating-ui/dom": "^1.7.5",
 		"@unocss/reset": "^66.5.9",
 		"jszip": "^3.10.1"
 	}
