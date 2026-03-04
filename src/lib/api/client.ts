@@ -147,9 +147,10 @@ class ApiClient {
   }
 
   // DELETE请求
-  async delete<T = any>(endpoint: string, options?: ApiRequestConfig): Promise<T> {
+  async delete<T = any>(endpoint: string, body?: any, options?: ApiRequestConfig): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'DELETE',
+      body,
       ...options
     });
   }

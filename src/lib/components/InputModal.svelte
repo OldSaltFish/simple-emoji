@@ -60,14 +60,14 @@
 
 {#if isOpen}
   <div 
-    class="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
+    class="fixed inset-0 z-[200] flex items-center justify-center p-4 transition-opacity duration-300" style="background-color: rgba(0, 0, 0, 0.5); opacity: 1;"
     onclick={(e) => { if (e.target === e.currentTarget) handleCancel(); }}
   >
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] transform transition-all duration-300 scale-100 opacity-100">
       <div class="px-6 py-4 border-b border-gray-200">
         <h3 class="text-lg font-semibold text-gray-900">{title}</h3>
       </div>
-      <div class="p-6">
+      <div class="p-6 overflow-y-auto flex-1">
         <input
           bind:this={inputElement}
           type="text"

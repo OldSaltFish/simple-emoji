@@ -166,13 +166,13 @@ export class ImagesApi {
   }
 
   // 更新标签
-  async updateTag(id: number, data: Partial<CreateTagRequest>): Promise<Tag> {
-    return await apiClient.put(`${this.tagsEndpoint}/${id}`, data);
+  async updateTag(name: string, data: Partial<CreateTagRequest>): Promise<Tag> {
+    return await apiClient.put(this.tagsEndpoint, { ...data, name });
   }
 
   // 删除标签
-  async deleteTag(id: number): Promise<void> {
-    const response = await apiClient.delete(`${this.tagsEndpoint}/${id}`);
+  async deleteTag(name: string): Promise<void> {
+    await apiClient.delete(this.tagsEndpoint, { name });
   }
 }
 

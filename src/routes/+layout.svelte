@@ -65,6 +65,14 @@
               ? 'bg-white text-blue-600 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'}">代码片段</a
           >
+          <a
+            href="/test/api-tester"
+            class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
+              '/test/api-tester',
+            )
+              ? 'bg-white text-blue-600 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'}">API 测试</a
+          >
           {#if isAdmin}
             <a
               href="/upload"
@@ -118,6 +126,14 @@
             )
               ? 'bg-white text-blue-600 shadow-sm'
               : 'text-gray-600'}">代码</a
+          >
+          <a
+            href="/test/api-tester"
+            class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
+              '/test/api-tester',
+            )
+              ? 'bg-white text-blue-600 shadow-sm'
+              : 'text-gray-600'}">API测试</a
           >
           {#if isAdmin}
             <a

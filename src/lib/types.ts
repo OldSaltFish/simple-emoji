@@ -18,10 +18,12 @@ export interface Image {
 }
 
 export interface Tag {
-  id: number;
   name: string;
-  kind: string;
+  kind?: TagKind;
 }
+
+export const TAG_KIND_OPTIONS = ['框架', '语言', '工具', '库', '其他'] as const;
+export type TagKind = typeof TAG_KIND_OPTIONS[number];
 
 export interface ImageTag {
   id: number;

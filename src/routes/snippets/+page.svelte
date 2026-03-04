@@ -4,9 +4,11 @@
   import { replaceState } from '$app/navigation';
   import Pagination from '$lib/components/Pagination.svelte';
   import { codeSnippetsApi, imagesApi, imageHostsApi } from '$lib/api';
-  import type { CodeSnippet, Tag, FilterOptions } from '$lib/types';
+  import type { CodeSnippet, Tag, FilterOptions, TagKind } from '$lib/types';
   import { showMessage } from '$lib/stores/messageStore';
+  import { adminStore } from '$lib/stores/admin';
   import Select from '$lib/components/Select.svelte';
+  import { TAG_KIND_OPTIONS } from '$lib/types';
   import InputModal from '$lib/components/InputModal.svelte';
 
   let codeSnippets = $state<CodeSnippet[]>([]);
@@ -22,11 +24,25 @@
   let editDescription = $state('');
   let editUrl = $state('');
   let editCoverUrl = $state('');
+  let editCoverPreview = $state<string>('');
+  let isUploading = $state(false);
   let editTags = $state<string[]>([]);
   let newTagName = $state('');
   let newTagKind = $state('');
   let showNewTagModal = $state(false);
   let showSortDropdown = $state(false);
+  let isAdmin = $state(false);
+  let showTagManagementModal = $state(false);
+  let editingTag = $state<Tag | null>(null);
+  let editTagName = $state('');
+  let editTagKind = $state('');
+  let tagFilterKind = $state<string>('');
+
+  let filteredTags = $derived(
+    tagFilterKind
+      ? tags.filter(tag => tag.kind === tagFilterKind)
+      : tags
+  );
 
   // 从 URL 查询参数初始化状态
   function initFromUrl() {
@@ -67,13 +83,30 @@
   onMount(async () => {
     initFromUrl();
     await loadData();
+    
+    // 订阅管理员状态
+    adminStore.subscribe(state => {
+      isAdmin = state.isAdmin;
+    });
   });
+
+  // 辅助函数：对标签数组进行去重
+  function deduplicateTags(tagsData: Tag[]): Tag[] {
+    const seen = new Set<string>();
+    return tagsData.filter((tag) => {
+      if (seen.has(tag.name)) {
+        return false;
+      }
+      seen.add(tag.name);
+      return true;
+    });
+  }
 
   async function loadData() {
     loading = true;
     try {
       const tagsData = await imagesApi.getTags();
-      tags = tagsData;
+      tags = deduplicateTags(tagsData);
 
       const codeSnippetsData = await codeSnippetsApi.getCodeSnippets({
         search: filters.search,
@@ -117,6 +150,8 @@
     editDescription = snippet.description || '';
     editUrl = snippet.url;
     editCoverUrl = snippet.cover_url || '';
+    editCoverPreview = '';
+    isUploading = false;
     editTags = snippet.tags?.map(tag => tag.name) || [];
   }
 
@@ -181,6 +216,10 @@
   }
 
   async function uploadCoverImage(file: File) {
+    // 创建本地预览
+    editCoverPreview = URL.createObjectURL(file);
+    isUploading = true;
+    
     try {
       const result = await imageHostsApi.upload(file);
       editCoverUrl = result.url;
@@ -188,6 +227,13 @@
     } catch (error) {
       console.error('上传封面失败:', error);
       showMessage('上传封面失败，请重试', 'error');
+    } finally {
+      isUploading = false;
+      // 清除本地预览 URL，避免内存泄漏
+      setTimeout(() => {
+        URL.revokeObjectURL(editCoverPreview);
+        editCoverPreview = '';
+      }, 1000);
     }
   }
 
@@ -228,7 +274,7 @@
       showMessage('标签创建成功', 'success');
 
       const updatedTags = await imagesApi.getTags();
-      tags = updatedTags;
+      tags = deduplicateTags(updatedTags);
 
       if (!editTags.includes(tagName)) {
         editTags = [...editTags, tagName];
@@ -240,6 +286,64 @@
       console.error('创建标签失败:', error);
       showMessage('创建标签失败，请重试', 'error');
     }
+  }
+
+  // 标签管理相关函数
+  function openTagManagement() {
+    showTagManagementModal = true;
+  }
+
+  function startEditTag(tag: Tag) {
+    editingTag = tag;
+    editTagName = tag.name;
+    editTagKind = tag.kind || '';
+  }
+
+  async function saveEditTag() {
+    if (!editingTag || !editTagName.trim()) return;
+
+    try {
+      await imagesApi.updateTag(editingTag.name, { name: editTagName, kind: editTagKind });
+      showMessage('标签更新成功', 'success');
+
+      const updatedTags = await imagesApi.getTags();
+      tags = deduplicateTags(updatedTags);
+
+      editingTag = null;
+      editTagName = '';
+      editTagKind = '';
+    } catch (error) {
+      console.error('更新标签失败:', error);
+      showMessage('更新标签失败，请重试', 'error');
+    }
+  }
+
+  async function deleteTag(tag: Tag) {
+    if (!confirm(`确定要删除标签 "${tag.name}" 吗？`)) return;
+
+    try {
+      await imagesApi.deleteTag(tag.name);
+      showMessage('标签删除成功', 'success');
+
+      const updatedTags = await imagesApi.getTags();
+      tags = deduplicateTags(updatedTags);
+
+      // 如果正在编辑的标签被删除，清空编辑状态
+      if (editingTag && editingTag.name === tag.name) {
+        editingTag = null;
+        editTagName = '';
+        editTagKind = '';
+      }
+    } catch (error) {
+      console.error('删除标签失败:', error);
+      showMessage('删除标签失败，请重试', 'error');
+    }
+  }
+
+  function cancelEditTag() {
+    editingTag = null;
+    editTagName = '';
+    editTagKind = '';
   }
 
   async function handleCreateSnippet() {
@@ -391,11 +495,11 @@
       </div>
 
       <!-- 第二行：框架标签平铺单选 -->
-      <div class="flex gap-2 flex-wrap items-center">
+      <div class="flex gap-2 flex-wrap items-center transition-all duration-300 ease-in-out">
         <span class="text-sm text-gray-500 mr-1">框架:</span>
         <button
           onclick={() => handleFilterChange({ framework: undefined })}
-          class="px-3 py-1.5 text-sm rounded-full border transition-colors"
+          class="px-3 py-1.5 text-sm rounded-full border transition-all duration-300 ease-in-out"
           class:bg-blue-500={!filters.framework}
           class:text-white={!filters.framework}
           class:bg-white={filters.framework}
@@ -408,7 +512,7 @@
         {#each frameworkTags as tag}
           <button
             onclick={() => handleFilterChange({ framework: tag.name })}
-            class="px-3 py-1.5 text-sm rounded-full border transition-colors"
+            class="px-3 py-1.5 text-sm rounded-full border transition-all duration-300 ease-in-out"
             class:bg-blue-500={filters.framework === tag.name}
             class:text-white={filters.framework === tag.name}
             class:bg-white={filters.framework !== tag.name}
@@ -427,12 +531,22 @@
     <!-- 操作栏 -->
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-gray-900">代码片段管理</h1>
-      <button
-        onclick={handleCreateSnippet}
-        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        + 新建代码片段
-      </button>
+      {#if isAdmin}
+      <div class="flex gap-3">
+        <button
+          onclick={openTagManagement}
+          class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+        >
+          标签管理
+        </button>
+        <button
+          onclick={handleCreateSnippet}
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          + 新建代码片段
+        </button>
+      </div>
+      {/if}
     </div>
 
     <!-- 代码片段列表 -->
@@ -453,18 +567,18 @@
     {:else}
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {#each codeSnippets as snippet}
-          <div class="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+          <div class="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 ease-in-out transform hover:-translate-y-1">
             <!-- 封面图片 -->
-            <div class="h-48 bg-gray-100 relative overflow-hidden">
+            <div class="h-48 bg-gray-100 relative overflow-hidden transition-all duration-300">
               {#if snippet.cover_url}
                 <img
                   src={snippet.cover_url}
                   alt={snippet.title}
-                  class="w-full h-full object-cover"
+                  class="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                 />
               {:else}
-                <div class="w-full h-full flex items-center justify-center text-gray-400">
-                  <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-full h-full flex items-center justify-center text-gray-400 transition-colors duration-300">
+                  <svg class="w-12 h-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                   </svg>
                 </div>
@@ -472,43 +586,45 @@
             </div>
 
             <!-- 内容 -->
-            <div class="p-4">
-              <h3 class="font-medium text-gray-900 mb-2 truncate">{snippet.title}</h3>
+            <div class="p-4 transition-all duration-300">
+              <h3 class="font-medium text-gray-900 mb-2 truncate transition-colors duration-300">{snippet.title}</h3>
               {#if snippet.description}
-                <p class="text-sm text-gray-500 mb-3 line-clamp-2">{snippet.description}</p>
+                <p class="text-sm text-gray-500 mb-3 line-clamp-2 transition-colors duration-300">{snippet.description}</p>
               {/if}
-              <div class="flex flex-wrap gap-1 mb-4">
+              <div class="flex flex-wrap gap-1 mb-4 transition-all duration-300">
                 {#each snippet.tags || [] as tag}
-                  <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full">{tag.name}</span>
+                  <span class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full transition-all duration-300 hover:bg-gray-200">{tag.name}</span>
                 {/each}
               </div>
-              <div class="flex justify-between items-center">
+              <div class="flex justify-between items-center transition-all duration-300">
                 <button
                   onclick={() => handleSnippetClick(snippet)}
-                  class="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                  class="text-sm text-blue-600 hover:text-blue-800 transition-colors duration-300"
                 >
                   查看链接
                 </button>
-                <div class="flex gap-2">
+                {#if isAdmin}
+                <div class="flex gap-2 transition-all duration-300 ease-in-out">
                   <button
                     onclick={() => startEditSnippet(snippet)}
-                    class="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                    class="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors duration-300"
                     title="编辑"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                   </button>
                   <button
                     onclick={() => handleDeleteSnippet(snippet)}
-                    class="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                    class="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors duration-300"
                     title="删除"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                   </button>
                 </div>
+                {/if}
               </div>
             </div>
           </div>
@@ -536,13 +652,13 @@
 </div>
 
 <!-- 编辑代码片段弹窗 -->
-{#if editingSnippet}
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onclick={(e) => { if (e.target === e.currentTarget) editingSnippet = null; }}>
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden">
+{#if editingSnippet && isAdmin}
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-300" style="background-color: rgba(0, 0, 0, 0.5); opacity: 1;" onclick={(e) => { if (e.target === e.currentTarget) editingSnippet = null; }}>
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] transform transition-all duration-300 scale-100 opacity-100">
       <div class="px-6 py-4 border-b border-gray-200">
         <h3 class="text-lg font-semibold text-gray-900">{editingSnippet.id ? '编辑代码片段' : '新建代码片段'}</h3>
       </div>
-      <div class="p-6 space-y-4" onpaste={handleCoverPaste}>
+      <div class="p-6 space-y-4 overflow-y-auto flex-1" onpaste={handleCoverPaste}>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">标题</label>
           <input
@@ -570,15 +686,26 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">封面图片</label>
-          {#if editCoverUrl}
+          {#if editCoverUrl || editCoverPreview}
             <div class="relative mb-3">
               <img
-                src={editCoverUrl}
+                src={editCoverPreview || editCoverUrl}
                 alt="封面预览"
                 class="w-full h-48 object-cover rounded-lg"
               />
+              {#if isUploading}
+                <div class="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div class="flex flex-col items-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white mb-2"></div>
+                    <span class="text-white text-sm">上传中...</span>
+                  </div>
+                </div>
+              {/if}
               <button
-                onclick={() => editCoverUrl = ''}
+                onclick={() => {
+                  editCoverUrl = '';
+                  editCoverPreview = '';
+                }}
                 class="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
                 title="移除封面"
               >
@@ -700,6 +827,7 @@
 {/if}
 
 <!-- 新增标签弹窗 -->
+{#if isAdmin}
 <InputModal
   bind:isOpen={showNewTagModal}
   title={newTagKind ? `新增${newTagKind}` : '新增标签'}
@@ -713,3 +841,131 @@
   }}
   onCancel={() => {}}
 />
+{/if}
+
+<!-- 标签管理弹窗 -->
+{#if showTagManagementModal && isAdmin}
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-300" style="background-color: rgba(0, 0, 0, 0.5); opacity: 1;" onclick={(e) => { if (e.target === e.currentTarget) showTagManagementModal = false; }}>
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] transform transition-all duration-300 scale-100 opacity-100">
+      <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold text-gray-900">标签管理</h3>
+        <button
+          onclick={() => showTagManagementModal = false}
+          class="p-1.5 text-gray-600 hover:text-gray-900 rounded-full transition-colors"
+          title="关闭"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="p-6 space-y-4 overflow-y-auto" style="height: 60vh; min-height: 400px;">
+        <!-- 筛选器 -->
+        <div class="flex items-center gap-3 pb-3 border-b border-gray-200 flex-wrap">
+          <span class="text-sm font-medium text-gray-700">类型：</span>
+          <div class="flex gap-2 flex-wrap">
+            <button
+              onclick={() => tagFilterKind = ''}
+              class="px-3 py-1.5 text-sm rounded-full transition-all duration-200 {tagFilterKind === '' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+            >
+              全部
+            </button>
+            {#each TAG_KIND_OPTIONS as option}
+              <button
+                onclick={() => tagFilterKind = option}
+                class="px-3 py-1.5 text-sm rounded-full transition-all duration-200 {tagFilterKind === option ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+              >
+                {option}
+              </button>
+            {/each}
+          </div>
+        </div>
+        
+        <!-- 标签列表 -->
+        <div class="space-y-3">
+          {#each filteredTags as tag (tag.name)}
+            <div class="space-y-3">
+              <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg transition-all duration-300 ease-in-out">
+                <div>
+                  <div class="font-medium">{tag.name}</div>
+                  <div class="text-sm text-gray-500">{tag.kind || '通用'}</div>
+                </div>
+                <div class="flex gap-2">
+                  <button
+                    onclick={() => startEditTag(tag)}
+                    class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                    title="编辑"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    onclick={() => deleteTag(tag)}
+                    class="p-1.5 text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                    title="删除"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- 编辑标签表单 -->
+              {#if editingTag?.name === tag.name}
+                <div class="p-4 border border-gray-200 rounded-lg transition-all duration-300 ease-in-out transform opacity-100 scale-100 bg-blue-50">
+                  <h4 class="text-md font-semibold text-gray-900 mb-3">编辑标签</h4>
+                  <div class="space-y-3">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">标签名称</label>
+                      <input
+                        type="text"
+                        bind:value={editTagName}
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        autofocus
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">标签类型</label>
+                      <div class="flex gap-2 flex-wrap">
+                        <button
+                          onclick={() => editTagKind = ''}
+                          class="px-3 py-1.5 text-sm rounded-full transition-all duration-200 {editTagKind === '' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+                        >
+                          不限
+                        </button>
+                        {#each TAG_KIND_OPTIONS as option}
+                          <button
+                            onclick={() => editTagKind = option}
+                            class="px-3 py-1.5 text-sm rounded-full transition-all duration-200 {editTagKind === option ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+                          >
+                            {option}
+                          </button>
+                        {/each}
+                      </div>
+                    </div>
+                    <div class="flex gap-2">
+                      <button
+                        onclick={saveEditTag}
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        保存
+                      </button>
+                      <button
+                        onclick={cancelEditTag}
+                        class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}

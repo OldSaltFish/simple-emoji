@@ -87,7 +87,7 @@
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
     onclick={handleBackdropClick}
   >
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
       <!-- 头部 -->
       <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <h3 class="text-lg font-semibold text-gray-900">替换图片</h3>
@@ -102,7 +102,7 @@
       </div>
 
       <!-- 内容 -->
-      <div class="p-6 space-y-4">
+      <div class="p-6 space-y-4 overflow-y-auto flex-1">
         <!-- 原图预览 -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">原图片</label>
