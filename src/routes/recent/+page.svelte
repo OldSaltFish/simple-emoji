@@ -41,7 +41,7 @@
     filters = {};
     if (categoryParam) filters.category = categoryParam;
     if (searchParam) filters.search = searchParam;
-    if (sortByParam) filters.sortBy = sortByParam as 'created_at' | 'size' | 'name';
+    if (sortByParam) filters.sortBy = sortByParam as 'created_at' | 'name';
     if (sortOrderParam) filters.sortOrder = sortOrderParam as 'asc' | 'desc';
     if (tagsParam) filters.tags = tagsParam.split(',');
   }

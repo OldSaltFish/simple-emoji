@@ -1,6 +1,7 @@
 export interface Category {
   name: string;
   description?: string;
+  cover_url?: string;
 }
 
 export interface Image {
@@ -8,9 +9,6 @@ export interface Image {
   category_name: string;
   description?: string;
   url: string;
-  width?: number;
-  height?: number;
-  size: number; // KB
   created_at: string;
   updated_at?: string;
   category?: Category;
@@ -19,11 +17,18 @@ export interface Image {
 
 export interface Tag {
   name: string;
-  kind?: TagKind;
+  kind?: string;
 }
 
-export const TAG_KIND_OPTIONS = ['框架', '语言', '工具', '库', '其他'] as const;
-export type TagKind = typeof TAG_KIND_OPTIONS[number];
+export const TAG_KIND_OPTIONS = ['人物', '情绪', '颜色', '风格', '作品', '其他'] as const;
+export type TagKind = string;
+
+export interface SnippetTag {
+  name: string;
+  kind?: string;
+}
+
+export const SNIPPET_TAG_KIND_OPTIONS = ['语言', '框架', '工具', '库', '其他'] as const;
 
 export interface ImageTag {
   id: number;
@@ -36,7 +41,7 @@ export interface FilterOptions {
   tags?: string[];
   framework?: string;
   search?: string;
-  sortBy?: 'created_at' | 'size' | 'name';
+  sortBy?: 'created_at' | 'name';
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -67,7 +72,7 @@ export interface CodeSnippet {
   description?: string;
   url: string;
   cover_url?: string;
-  tags?: Tag[];
+  tags?: SnippetTag[];
   created_at: string;
   updated_at?: string;
 }

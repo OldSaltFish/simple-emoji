@@ -42,7 +42,6 @@
 
   const sortOptions = [
     { value: 'created_at', label: '时间' },
-    { value: 'size', label: '大小' },
     { value: 'name', label: '名称' }
   ];
 

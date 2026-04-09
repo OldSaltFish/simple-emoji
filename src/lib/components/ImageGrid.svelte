@@ -24,27 +24,20 @@
   let currentImage = $state<Image | null>(null);
   let isAdmin = $state(false);
 
-  // 订阅管理员状态
+  // 订阅管理员状�?  
   adminStore.subscribe(state => {
     isAdmin = state.isAdmin;
   });
-
-  function formatFileSize(sizeKB: number): string {
-    if (sizeKB < 1024) {
-      return `${sizeKB} KB`;
-    }
-    return `${(sizeKB / 1024).toFixed(1)} MB`;
-  }
 
   function formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString('zh-CN');
   }
 
-  // 缓存已获取的blob，避免重复下载
+  // 缓存已获取的blob，避免重复下�?  
   const imageBlobCache = new Map<string, Blob>();
 
   async function getImageBlob(image: Image): Promise<Blob> {
-    // 检查缓存
+    // 检查缓�?    
     if (imageBlobCache.has(image.url)) {
       return imageBlobCache.get(image.url)!;
     }
@@ -82,7 +75,7 @@
       return blob;
     } catch (fetchError) {
       // 直接fetch失败，尝试通过后端代理
-      console.warn('直接fetch失败，尝试使用代理:', fetchError);
+      console.warn('直接fetch失败，尝试使用代�?', fetchError);
       const encodedUrl = encodeURIComponent(image.url);
       const proxyResponse = await fetch(`${config.apiBaseUrl}/bing/imgProxy?url=${encodedUrl}`);
       blob = await proxyResponse.blob();
@@ -104,13 +97,13 @@
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('下载失败:', error);
-      alert('下载失败，请重试');
+      showMessage('下载失败，请重试');
     }
   }
 
   async function copyImage(image: Image) {
     try {
-      // 直接使用 fetch 获取图片 blob，避免 canvas 跨域问题
+      // 直接使用 fetch 获取图片 blob，避�?canvas 跨域问题
       let blob: Blob;
       
       // 尝试直接 fetch
@@ -119,7 +112,7 @@
         blob = await response.blob();
       } catch (fetchError) {
         // 使用后端代理
-        console.warn('直接 fetch 失败，使用代理:', fetchError);
+        console.warn('直接 fetch 失败，使用代�?', fetchError);
         const encodedUrl = encodeURIComponent(image.url);
         const proxyResponse = await fetch(`${config.apiBaseUrl}/bing/imgProxy?url=${encodedUrl}`);
         blob = await proxyResponse.blob();
@@ -127,27 +120,27 @@
       
       // 尝试使用 Clipboard API 复制图片
       if (navigator.clipboard && navigator.clipboard.write) {
-        // 确保文档处于聚焦状态
+        // 确保文档处于聚焦状�?        
         if (document.hasFocus()) {
           await navigator.clipboard.write([
             new ClipboardItem({
               [blob.type]: blob
             })
           ]);
-          showMessage('图片已复制到剪贴板', 'success');
+          showMessage('图片已复制到剪切板', 'success');
         } else {
           // 文档未聚焦，降级复制链接
           await navigator.clipboard.writeText(image.url);
           showMessage('图片链接已复制', 'info');
         }
       } else {
-        // 降级：复制图片链接
+        // 降级：复制图片链�?        
         await navigator.clipboard.writeText(image.url);
-        showMessage('图片链接已复制（浏览器不支持直接复制图片）', 'info');
+        showMessage('图片链接已复制（浏览器不支持直接复制图片', 'info');
       }
     } catch (error) {
       console.error('复制失败:', error);
-      // 降级：复制图片链接
+      // 降级：复制图片链�?      
       try {
         await navigator.clipboard.writeText(image.url);
         showMessage('图片链接已复制', 'info');
@@ -218,7 +211,7 @@
     }
 
     if (successCount === 0) {
-      alert('没有成功添加任何文件到压缩包');
+      showMessage('没有成功添加任何文件到压缩包');
       return;
     }
 
@@ -234,11 +227,11 @@
       URL.revokeObjectURL(url);
 
       if (failCount > 0) {
-        alert(`成功打包 ${successCount} 个文件，失败 ${failCount} 个文件`);
+        showMessage(`成功打包 ${successCount} 个文件，失败 ${failCount} 个文件`);
       }
     } catch (error) {
-      console.error('生成压缩包失败:', error);
-      alert('生成压缩包失败，请重试');
+      console.error('生成压缩包失�?', error);
+      showMessage('生成压缩包失败，请重试');
     }
   }
 
@@ -283,7 +276,7 @@
           label: '删除图片',
           icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />',
           action: () => {
-            if (confirm(`确定要删除 "${image.description || '未命名表情'}" 吗？`)) {
+            if (confirm(`确定要删除"${image.description || '未命名表'}" 吗？`)) {
               onDeleteImage(image);
             }
           },
@@ -315,14 +308,14 @@
     </div>
   {:else if images.length === 0}
     <div class="text-center py-12">
-      <div class="text-gray-400 text-lg mb-2">暂无表情包</div>
-      <div class="text-gray-500">试试调整筛选条件或上传新的表情包</div>
+      <div class="text-gray-400 text-lg mb-2">暂无表情</div>
+      <div class="text-gray-500">试试调整筛选条件或上传新的表情</div>
     </div>
   {:else}
-    <!-- 操作栏 - 固定高度避免跳动 -->
+    <!-- 操作�?- 固定高度避免跳动 -->
     <div class="mb-4 min-h-[40px]">
       <div class="flex flex-wrap items-center gap-2">
-        <!-- 全选按钮 -->
+        <!-- 全选按�?-->
         <button
           onclick={toggleAll}
           class="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -335,11 +328,10 @@
           </span>
         </button>
 
-        <!-- 批量操作 - 选中时显示 -->
+        <!-- 批量操作 - 选中时显�?-->
         {#if selectedIds.size > 0}
           <span class="text-sm text-gray-700 whitespace-nowrap">
-            {selectedIds.size}个
-          </span>
+            {selectedIds.size}�?          </span>
 
           <!-- 下载方式选择 -->
           <Select
@@ -367,7 +359,7 @@
         {#if isAdmin}
           <Select
             value=""
-            placeholder="改图集..."
+            placeholder="改图�?.."
             options={categories.map(cat => ({ value: cat.name, label: cat.name }))}
             onChange={(value: string) => handleBatchUpdate(value)}
             class="w-24 sm:w-28"
@@ -397,7 +389,7 @@
           ontouchend={() => contextMenu?.handleTouchEnd()}
           ontouchmove={() => contextMenu?.handleTouchMove()}
         >
-          <!-- 选择框 -->
+          <!-- 选择�?-->
           <div class="absolute top-2 left-2 z-10">
             <button
               onclick={() => toggleSelect(image.id)}
@@ -451,7 +443,7 @@
           <!-- 信息 -->
           <div class="p-2 xs:p-3">
             <div class="text-xs sm:text-sm font-medium text-gray-900 truncate mb-1">
-              {image.description || '未命名表情'}
+              {image.description || '未命名表'}
             </div>
 
             <!-- 分类 -->
@@ -477,9 +469,8 @@
               </div>
             {/if}
 
-            <!-- 元信息 -->
+            <!-- 元信�?-->
             <div class="flex justify-between items-center text-xs text-gray-500 xs:text-xs">
-              <span>{formatFileSize(image.size)}</span>
               <span>{formatDate(image.created_at)}</span>
             </div>
           </div>

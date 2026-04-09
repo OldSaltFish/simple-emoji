@@ -3,6 +3,7 @@ export { apiClient } from './client';
 export { imageHostsApi } from './imageHosts';
 export { imagesApi } from './images';
 export { codeSnippetsApi } from './codeSnippets';
+export { snippetTagsApi } from './snippetTags';
 
 // 重新导出类型
 export type { 
@@ -15,6 +16,7 @@ export type {
   CreateCategoryRequest,
   CreateTagRequest
 } from './images';
+export type { CreateSnippetTagRequest } from './snippetTags';
 
 // 为了向后兼容，保留原有的api对象
 import { imagesApi } from './images';

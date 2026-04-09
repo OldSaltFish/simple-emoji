@@ -1,5 +1,5 @@
 import { apiClient as client } from './client';
-import type { CodeSnippet, Tag } from '$lib/types';
+import type { CodeSnippet } from '$lib/types';
 
 export const codeSnippetsApi = {
   async getCodeSnippets(params?: {

@@ -3,6 +3,9 @@
   import { adminStore } from '$lib/stores/admin';
   import AdminSidebar from '$lib/components/admin/AdminSidebar.svelte';
   import InterfaceManagement from '$lib/components/admin/InterfaceManagement.svelte';
+  import CategoryManagement from '$lib/components/admin/CategoryManagement.svelte';
+  import TagManagement from '$lib/components/admin/TagManagement.svelte';
+  import SnippetTagManagement from '$lib/components/admin/SnippetTagManagement.svelte';
 
   let isAdmin = $state(false);
   let activeTab = $state('interfaces');
@@ -45,9 +48,15 @@
     <AdminSidebar bind:activeTab />
     
     <!-- 主内容区域 -->
-    <div class="flex-1 p-6">
+    <div class="flex-1 p-6 overflow-y-auto">
       {#if activeTab === 'interfaces'}
         <InterfaceManagement />
+      {:else if activeTab === 'categories'}
+        <CategoryManagement />
+      {:else if activeTab === 'tags'}
+        <TagManagement />
+      {:else if activeTab === 'snippet-tags'}
+        <SnippetTagManagement />
       {:else if activeTab === 'images'}
         <div class="bg-white rounded-lg shadow p-6">
           <h2 class="text-2xl font-bold mb-4">图片管理</h2>

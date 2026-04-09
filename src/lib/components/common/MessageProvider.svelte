@@ -37,7 +37,7 @@
             <span class="text-sm font-medium">{msg.text}</span>
 
             <button 
-                on:click={() => removeMessage(msg.id)}
+                onclick={() => removeMessage(msg.id)}
                 class="ml-auto pl-4 transition-opacity hover:opacity-60"
                 aria-label="Close"
             >

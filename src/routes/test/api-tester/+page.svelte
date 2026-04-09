@@ -13,6 +13,7 @@
   let result = $state<any>(null);
   let streamingText = $state('');
   let error = $state<string | null>(null);
+  import { showMessage } from '$lib/stores/messageStore';
 
   const apiTypes = [
     { label: 'OpenAI (Compatible)', value: 'openai' },
@@ -176,7 +177,7 @@
   const copyResult = () => {
     const textToCopy = isStreaming ? streamingText : JSON.stringify(result, null, 2);
     navigator.clipboard.writeText(textToCopy);
-    alert('Copied to clipboard!');
+    showMessage('Copied to clipboard!');
   };
 </script>
 

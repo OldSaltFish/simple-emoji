@@ -40,7 +40,7 @@
         <div class="flex items-center justify-between">
           <span class="block sm:inline">{message.content}</span>
           <button 
-            on:click={() => removeMessage(message.id)}
+            onclick={() => removeMessage(message.id)}
             class="ml-4 text-lg leading-none hover:opacity-70"
             aria-label="关闭消息"
           >

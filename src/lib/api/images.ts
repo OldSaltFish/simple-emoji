@@ -7,7 +7,7 @@ export interface GetImagesParams {
   category?: string | 'none';
   tags?: string[];
   search?: string;
-  sortBy?: 'created_at' | 'size' | 'name';
+  sortBy?: 'created_at' | 'name';
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -43,6 +43,7 @@ export interface BatchCreateImageRequest {
 export interface CreateCategoryRequest {
   name: string;
   description?: string;
+  cover_url?: string;
 }
 
 export interface CreateTagRequest {
@@ -62,14 +63,11 @@ export class ImagesApi {
     if (params.page !== undefined) requestParams.page = params.page;
     if (params.page_size !== undefined) requestParams.page_size = params.page_size;
     if (params.category !== undefined) {
-      // category 为 'none' 时传递空字符串表示无分类
-      // category 为 '' 时不传递参数表示全部分类
       if (params.category === 'none') {
         requestParams.category = '';
       } else if (params.category !== '') {
         requestParams.category = params.category;
       }
-      // category === '' 时,不传递参数,后端会视为全部分类
     }
     if (params.search !== undefined) requestParams.search = params.search;
     if (params.sortBy !== undefined) requestParams.sortBy = params.sortBy;
@@ -135,9 +133,23 @@ export class ImagesApi {
     return await apiClient.put(`${this.categoriesEndpoint}/${id}`, data);
   }
 
+  // 为分类上传封面
+  async uploadCategoryCover(name: string, file: File): Promise<{ cover_url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return await apiClient.post(`${this.categoriesEndpoint}/${encodeURIComponent(name)}/cover`, formData);
+  }
+
+  // 为分类设置已有图片作为封面
+  async setCategoryCover(name: string, imageUrl: string): Promise<Category> {
+    return await apiClient.patch(`${this.categoriesEndpoint}/${encodeURIComponent(name)}/set-cover`, {
+      image_url: imageUrl
+    });
+  }
+
   // 删除分类
   async deleteCategory(id: number): Promise<void> {
-    const response = await apiClient.delete(`${this.categoriesEndpoint}/${id}`);
+    await apiClient.delete(`${this.categoriesEndpoint}/${id}`);
   }
 
   // 删除分类（通过名称）
@@ -158,6 +170,11 @@ export class ImagesApi {
     const params = kind ? { kind } : undefined;
     const data = await apiClient.get(this.tagsEndpoint, params);
     return data || [];
+  }
+
+  // 获取所有标签种类
+  async getTagKinds(): Promise<string[]> {
+    return await apiClient.get(`${this.tagsEndpoint}/kinds`);
   }
 
   // 创建标签

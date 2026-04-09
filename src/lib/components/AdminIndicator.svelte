@@ -24,7 +24,7 @@
   <div class="fixed top-4 left-4 z-40 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg animate-pulse flex items-center gap-2">
     <span>管理员模式</span>
     <button 
-      on:click={disableAdminMode}
+      onclick={disableAdminMode}
       class="hover:bg-red-700 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
       title="退出管理员模式"
     >

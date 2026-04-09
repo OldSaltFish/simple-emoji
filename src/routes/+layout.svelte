@@ -7,6 +7,7 @@
   import AdminIndicator from "$lib/components/AdminIndicator.svelte";
   import KonamiCodeListener from "$lib/components/KonamiCodeListener.svelte";
   import MessageProvider from "$lib/components/common/MessageProvider.svelte";
+  import DialogProvider from "$lib/components/common/DialogProvider.svelte";
   import { adminStore } from "$lib/stores/admin";
   import { page } from "$app/state";
   let { children } = $props();
@@ -30,6 +31,7 @@
   <link rel="icon" href={favicon} />
 </svelte:head>
 <MessageProvider />
+<DialogProvider />
 <KonamiCodeListener />
 <Message />
 <AdminIndicator />
