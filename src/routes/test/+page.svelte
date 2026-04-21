@@ -131,14 +131,8 @@
 
 <div class="bg-gray-50 min-h-screen p-8">
 	<div class="max-w-4xl mx-auto">
-		<div class="flex justify-between items-center mb-6">
+		<div class="mb-6">
 			<h1 class="text-2xl font-bold text-gray-900">HTTP并发限制测试</h1>
-			<a 
-				href="/test/api-tester" 
-				class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-			>
-				LLM API Tester
-			</a>
 		</div>
 
 		<div class="bg-white rounded-lg shadow p-6 mb-6">

@@ -67,15 +67,15 @@
               ? 'bg-white text-blue-600 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'}">代码片段</a
           >
-          <a
-            href="/test/api-tester"
-            class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
-              '/test/api-tester',
-            )
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'}">API 测试</a
-          >
           {#if isAdmin}
+            <a
+              href="/admin-feat"
+              class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
+                '/admin-feat',
+              )
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'}">管理工具</a
+            >
             <a
               href="/upload"
               class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
@@ -129,15 +129,15 @@
               ? 'bg-white text-blue-600 shadow-sm'
               : 'text-gray-600'}">代码</a
           >
-          <a
-            href="/test/api-tester"
-            class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
-              '/test/api-tester',
-            )
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600'}">API测试</a
-          >
           {#if isAdmin}
+            <a
+              href="/admin-feat"
+              class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
+                '/admin-feat',
+              )
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600'}">工具</a
+            >
             <a
               href="/upload"
               class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
