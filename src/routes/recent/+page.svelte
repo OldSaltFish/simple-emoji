@@ -241,7 +241,7 @@
   <meta name="description" content="查看最近的表情包" />
 </svelte:head>
 
-<div class="bg-gray-50 flex flex-col" style="height: calc(100vh - 64px);">
+<div class="bg-gray-50 flex flex-col">
   <FilterPanel
     {categories}
     {tags}

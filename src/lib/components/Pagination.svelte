@@ -95,7 +95,6 @@
             onclick={() => goToPage(page)}
             class="min-w-[32px] sm:min-w-[36px] px-2 py-2 text-sm border rounded-lg transition-colors"
             class:bg-blue-500={page === currentPage}
-            class:text-white={page === currentPage}
             class:border-blue-500={page === currentPage}
             class:border-gray-300={page !== currentPage}
             class:hover:bg-gray-50={page !== currentPage}
