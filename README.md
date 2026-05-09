@@ -1,38 +1,16 @@
-# sv
+# MyPage
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+[![Netlify Status](https://api.netlify.com/api/v1/badges/70e7ed73-750c-48bb-97f7-7c50dec767f2/deploy-status)](https://app.netlify.com/projects/simplemoji/deploys)
 
-## Creating a project
+个人网站，汇集各种想做的功能。技术栈选用 SvelteKit，部署在 Netlify。
 
-If you're seeing this, you've probably already done this step. Congrats!
+偏向开源开放的项目会单独建仓库，使用 Vue / React 等热门框架，方便社区参与。例如：
 
-```sh
-# create a new project in the current directory
-npx sv create
+- [VSCode 插件下载](https://vsc-extension.dreamsoul.cn/)
 
-# create a new project in my-app
-npx sv create my-app
-```
+## 技术栈
 
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+- **框架**: SvelteKit (SSR)
+- **样式**: UnoCSS
+- **部署**: Netlify
+- **包管理**: Bun
