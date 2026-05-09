@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { replaceState } from '$app/navigation';
   import Pagination from '$lib/components/Pagination.svelte';
@@ -13,14 +12,16 @@
   import InputModal from '$lib/components/InputModal.svelte';
   import { customConfirm } from '$lib/stores/dialogStore';
 
-  let codeSnippets = $state<CodeSnippet[]>([]);
-  let tags = $state<SnippetTag[]>([]);
+  let { data } = $props();
+
+  let codeSnippets = $state<CodeSnippet[]>(data.codeSnippets);
+  let tags = $state<SnippetTag[]>(data.tags);
   let loading = $state(false);
   let updating = $state(false);
-  let currentPage = $state(1);
-  let totalPages = $state(1);
-  let total = $state(0);
-  let filters = $state<FilterOptions>({});
+  let currentPage = $state(data.currentPage);
+  let totalPages = $state(data.totalPages);
+  let total = $state(data.total);
+  let filters = $state<FilterOptions>(data.filters || {});
   let editingSnippet = $state<CodeSnippet | null>(null);
   let editTitle = $state('');
   let editDescription = $state('');
@@ -40,29 +41,15 @@
   let editTagKind = $state('');
   let tagFilterKind = $state<string>('');
 
+  adminStore.subscribe(state => {
+    isAdmin = state.isAdmin;
+  });
+
   let filteredTags = $derived(
     tagFilterKind
       ? tags.filter(tag => tag.kind === tagFilterKind)
       : tags
   );
-
-  // 从 URL 查询参数初始化状态
-  function initFromUrl() {
-    const params = $page.url.searchParams;
-    const pageParam = params.get('page');
-    currentPage = pageParam ? parseInt(pageParam, 10) : 1;
-    const searchParam = params.get('search');
-    const sortByParam = params.get('sortBy');
-    const sortOrderParam = params.get('sortOrder');
-    const tagsParam = params.get('tags');
-    const frameworkParam = params.get('framework');
-    filters = {};
-    if (searchParam) filters.search = searchParam;
-    if (sortByParam) filters.sortBy = sortByParam as 'created_at' | 'name';
-    if (sortOrderParam) filters.sortOrder = sortOrderParam as 'asc' | 'desc';
-    if (tagsParam) filters.tags = tagsParam.split(',');
-    if (frameworkParam) filters.framework = frameworkParam;
-  }
 
   function updateUrl() {
     const params = new URLSearchParams();
@@ -75,14 +62,6 @@
     const newUrl = `${$page.url.pathname}${params.toString() ? '?' + params.toString() : ''}`;
     replaceState(newUrl, $page.state);
   }
-
-  onMount(async () => {
-    initFromUrl();
-    await loadData();
-    adminStore.subscribe(state => {
-      isAdmin = state.isAdmin;
-    });
-  });
 
   function deduplicateTags(tagsData: SnippetTag[]): SnippetTag[] {
     const seen = new Set<string>();

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { replaceState } from '$app/navigation';
   import FilterPanel from '$lib/components/FilterPanel.svelte';
@@ -12,63 +11,33 @@
   import { showMessage } from '$lib/stores/messageStore';
   import { config } from '$lib/config/env';
 
-  let categories = $state<Category[]>([]);
-  let tags = $state<Tag[]>([]);
-  let images = $state<Image[]>([]);
+  let { data } = $props();
+
+  let categories = $state<Category[]>(data.categories);
+  let tags = $state<Tag[]>(data.tags);
+  let images = $state<Image[]>(data.images);
   let loading = $state(false);
   let updating = $state(false);
-  let currentPage = $state(1);
-  let totalPages = $state(1);
-  let total = $state(0);
-  let filters = $state<FilterOptions>({});
+  let currentPage = $state(data.currentPage);
+  let totalPages = $state(data.totalPages);
+  let total = $state(data.total);
+  let filters = $state<FilterOptions>(data.filters || {});
   let replaceImageTarget = $state<Image | null>(null);
 
-  // 从 URL 查询参数初始化状态
-  function initFromUrl() {
-    const params = $page.url.searchParams;
-
-    // 解析页码
-    const pageParam = params.get('page');
-    currentPage = pageParam ? parseInt(pageParam, 10) : 1;
-
-    // 解析筛选条件
-    const categoryParam = params.get('category');
-    const searchParam = params.get('search');
-    const sortByParam = params.get('sortBy');
-    const sortOrderParam = params.get('sortOrder');
-    const tagsParam = params.get('tags');
-
-    filters = {};
-    if (categoryParam) filters.category = categoryParam;
-    if (searchParam) filters.search = searchParam;
-    if (sortByParam) filters.sortBy = sortByParam as 'created_at' | 'name';
-    if (sortOrderParam) filters.sortOrder = sortOrderParam as 'asc' | 'desc';
-    if (tagsParam) filters.tags = tagsParam.split(',');
-  }
-
-  // 更新 URL 查询参数
   function updateUrl() {
     const params = new URLSearchParams();
 
-    // 更新页码
     if (currentPage > 1) params.set('page', currentPage.toString());
 
-    // 更新筛选条件
     if (filters.category) params.set('category', filters.category);
     if (filters.search) params.set('search', filters.search);
     if (filters.sortBy) params.set('sortBy', filters.sortBy);
     if (filters.sortOrder) params.set('sortOrder', filters.sortOrder);
     if (filters.tags && filters.tags.length > 0) params.set('tags', filters.tags.join(','));
 
-    // 更新 URL 但不触发导航
     const newUrl = `${$page.url.pathname}${params.toString() ? '?' + params.toString() : ''}`;
     replaceState(newUrl, $page.state);
   }
-
-  onMount(async () => {
-    initFromUrl();
-    await loadData();
-  });
 
   async function loadData() {
     loading = true;

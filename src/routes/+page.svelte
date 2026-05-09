@@ -1,27 +1,23 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { imagesApi } from '$lib/api/images';
-  import type { Category, Image } from '$lib/types';
+  import type { Category } from '$lib/types';
   import ContextMenu from '$lib/components/ContextMenu.svelte';
   import { adminStore } from '$lib/stores/admin';
   import { showMessage } from '$lib/stores/messageStore';
   import { customConfirm } from '$lib/stores/dialogStore';
 
-  let albums = $state<Category[]>([]);
-  let loading = $state(true);
+  let { data } = $props();
+
+  let albums = $state<Category[]>(data.categories);
+  let loading = $state(false);
   let isAdmin = $state(false);
   let showEditModal = $state(false);
   let editingAlbum = $state<Category | null>(null);
   let editName = $state('');
   let editDescription = $state('');
 
-  // 订阅管理员状态
   adminStore.subscribe(state => {
     isAdmin = state.isAdmin;
-  });
-
-  onMount(async () => {
-    await loadAlbums();
   });
 
   async function loadAlbums() {
