@@ -2,7 +2,7 @@
   let { activeTab = $bindable('llm-api-test') } = $props();
 
   const menuItems = [
-    { id: 'llm-api-test', name: 'LLM API 测试', icon: '🤖' },
+    { id: 'llm-api-test', name: 'LLM 密钥管理', icon: '🔑' },
   ];
 </script>
 

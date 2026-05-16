@@ -1,1153 +1,934 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { showMessage } from '$lib/stores/messageStore';
+  import { customConfirm } from '$lib/stores/dialogStore';
   import { llmConfigApi, type LlmConfig } from '$lib/api/llmConfig';
+  import { llmModelCheckApi, type LlmModelCheck } from '$lib/api/llmModelCheck';
 
   type ApiType = 'openai' | 'gemini' | 'claude';
 
-  let configs = $state<LlmConfig[]>([]);
-  let selectedConfigId = $state<number | null>(null);
-  let apiType = $state<ApiType>('openai');
-  let endpoint = $state('https://api.openai.com');
-  let apiKey = $state('');
-  let model = $state('gpt-3.5-turbo');
-  let availableModels = $state<string[]>([]);
-  let prompt = $state('Hello, who are you?');
-  let loading = $state(false);
-  let fetchingModels = $state(false);
-  let saving = $state(false);
-  let deleting = $state(false);
-  let isStreaming = $state(true);
-  let result = $state<any>(null);
-  let streamingText = $state('');
-  let error = $state<string | null>(null);
-
-  const apiTypes = [
-    { label: 'OpenAI (Compatible)', value: 'openai' },
-    { label: 'Google Gemini', value: 'gemini' },
-    { label: 'Anthropic Claude', value: 'claude' },
-  ];
-
-  const typeLabels: Record<ApiType, string> = {
+  const apiTypeLabels: Record<ApiType, string> = {
     openai: 'OpenAI',
     gemini: 'Gemini',
     claude: 'Claude',
   };
 
-  const isEditing = $derived(selectedConfigId !== null);
+  const apiTypeColors: Record<ApiType, string> = {
+    openai: 'bg-green-100 text-green-700',
+    gemini: 'bg-blue-100 text-blue-700',
+    claude: 'bg-orange-100 text-orange-700',
+  };
+
+  let configs = $state<LlmConfig[]>([]);
+  let checkHistoryMap = $state<Record<number, LlmModelCheck>>({});
+  let loading = $state(false);
+  let showEditModal = $state(false);
+  let isNew = $state(false);
+  let saving = $state(false);
+
+  let editForm = $state({
+    api_type: 'openai' as ApiType,
+    endpoint: '',
+    api_key: '',
+    group: '',
+    key_note: '',
+    endpoint_note: '',
+    endpoint_group: '',
+  });
+
+  let editingId = $state<number | null>(null);
+  let showApiKeyMap = $state<Record<number, boolean>>({});
+
+  let showCheckModal = $state(false);
+  let checkMinimized = $state(false);
+  let checkingConfig = $state<LlmConfig | null>(null);
+  let checkLogs = $state<{ text: string; type: 'info' | 'ok' | 'fail' | 'system' }[]>([]);
+  let checkRunning = $state(false);
+  let checkProgress = $state({ done: 0, total: 0 });
+  let checkAutoScroll = $state(true);
+  let consoleEl: HTMLDivElement | undefined = $state();
+
+  let showHistoryModal = $state(false);
+  let viewingHistory = $state<LlmModelCheck | null>(null);
+  let viewingConfig = $state<LlmConfig | null>(null);
 
   onMount(async () => {
     await loadConfigs();
   });
 
-  const loadConfigs = async () => {
+  async function loadConfigs() {
+    loading = true;
     try {
       const res = await llmConfigApi.list();
       configs = res.list || [];
-      if (configs.length > 0 && !selectedConfigId) {
-        selectConfig(configs[0]);
-      }
-    } catch {}
-  };
-
-  const selectConfig = (config: LlmConfig) => {
-    selectedConfigId = config.id ?? null;
-    apiType = config.api_type;
-    endpoint = config.endpoint;
-    apiKey = config.api_key;
-    if (config.api_type === 'openai') model = 'gpt-3.5-turbo';
-    else if (config.api_type === 'gemini') model = 'gemini-pro';
-    else if (config.api_type === 'claude') model = 'claude-3-haiku-20240307';
-  };
-
-  const resetForm = () => {
-    selectedConfigId = null;
-    apiType = 'openai';
-    endpoint = 'https://api.openai.com';
-    apiKey = '';
-    model = 'gpt-3.5-turbo';
-    availableModels = [];
-  };
-
-  const handleTypeChange = (type: ApiType) => {
-    apiType = type;
-    availableModels = [];
-    streamingText = '';
-    result = null;
-    if (type === 'openai') {
-      endpoint = 'https://api.openai.com';
-      model = 'gpt-3.5-turbo';
-    } else if (type === 'gemini') {
-      endpoint = 'https://generativelanguage.googleapis.com';
-      model = 'gemini-pro';
-    } else if (type === 'claude') {
-      endpoint = 'https://api.anthropic.com';
-      model = 'claude-3-haiku-20240307';
+      await loadCheckHistory();
+    } catch {
+      showMessage('加载配置失败', 'error');
+    } finally {
+      loading = false;
     }
-  };
+  }
 
-  const saveConfig = async () => {
+  async function loadCheckHistory() {
+    try {
+      const res = await llmModelCheckApi.listAll();
+      const map: Record<number, LlmModelCheck> = {};
+      for (const item of res.list || []) {
+        map[item.llm_config] = item;
+      }
+      checkHistoryMap = map;
+    } catch {}
+  }
+
+  function openAddModal() {
+    editForm = {
+      api_type: 'openai',
+      endpoint: '',
+      api_key: '',
+      group: '',
+      key_note: '',
+      endpoint_note: '',
+      endpoint_group: '',
+    };
+    editingId = null;
+    isNew = true;
+    showEditModal = true;
+  }
+
+  function addKeyToEndpoint(config: LlmConfig) {
+    editForm = {
+      api_type: config.api_type,
+      endpoint: config.endpoint,
+      api_key: '',
+      group: '',
+      key_note: '',
+      endpoint_note: config.endpoint_note || '',
+      endpoint_group: config.endpoint_group || '',
+    };
+    editingId = null;
+    isNew = true;
+    showEditModal = true;
+  }
+
+  function openEditModal(config: LlmConfig) {
+    editForm = {
+      api_type: config.api_type,
+      endpoint: config.endpoint,
+      api_key: config.api_key,
+      group: config.group || '',
+      key_note: config.key_note || '',
+      endpoint_note: config.endpoint_note || '',
+      endpoint_group: config.endpoint_group || '',
+    };
+    editingId = config.id ?? null;
+    isNew = false;
+    showEditModal = true;
+  }
+
+  async function saveConfig() {
+    if (!editForm.endpoint || !editForm.api_key) {
+      showMessage('Endpoint 和 API Key 不能为空', 'error');
+      return;
+    }
+
     saving = true;
     try {
-      const payload = { api_type: apiType, endpoint, api_key: apiKey };
-      if (isEditing && selectedConfigId !== null) {
-        await llmConfigApi.update(selectedConfigId, payload);
-      } else {
+      const payload = { ...editForm };
+      if (isNew) {
         await llmConfigApi.create(payload);
+        showMessage('添加成功', 'success');
+      } else if (editingId !== null) {
+        await llmConfigApi.update(editingId, payload);
+        showMessage('更新成功', 'success');
       }
       await loadConfigs();
+      showEditModal = false;
     } catch (err: any) {
       showMessage('保存失败: ' + (err.message || '未知错误'), 'error');
     } finally {
       saving = false;
     }
-  };
+  }
 
-  const deleteConfig = async () => {
-    if (selectedConfigId === null) return;
-    deleting = true;
+  async function deleteConfig(id: number) {
+    if (!(await customConfirm('确定要删除此密钥配置吗？关联的检测记录也会一并删除。'))) return;
     try {
-      await llmConfigApi.delete(selectedConfigId);
-      selectedConfigId = null;
+      await llmConfigApi.delete(id);
+      showMessage('删除成功', 'success');
       await loadConfigs();
-      if (configs.length > 0) {
-        selectConfig(configs[0]);
-      } else {
-        resetForm();
-      }
     } catch (err: any) {
       showMessage('删除失败: ' + (err.message || '未知错误'), 'error');
-    } finally {
-      deleting = false;
     }
-  };
+  }
 
-  const fetchModels = async () => {
-    fetchingModels = true;
-    error = null;
-    try {
-      let url = endpoint;
-      let headers: Record<string, string> = {
-        Authorization: `Bearer ${apiKey}`,
-      };
-
-      if (apiType === 'openai') {
-        url = url.endsWith('/') ? url + 'v1/models' : url + '/v1/models';
-        const res = await fetch(url, { headers });
-        const data = await res.json();
-        if (data.data) availableModels = data.data.map((m: any) => m.id);
-      } else if (apiType === 'gemini') {
-        url = url.endsWith('/') ? url : url + '/';
-        url += `v1beta/models?key=${apiKey}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.models)
-          availableModels = data.models.map((m: any) =>
-            m.name.replace('models/', ''),
-          );
-      } else if (apiType === 'claude') {
-        availableModels = [
-          'claude-3-opus-20240229',
-          'claude-3-sonnet-20240229',
-          'claude-3-haiku-20240307',
-          'claude-2.1',
-        ];
-      }
-    } catch (err: any) {
-      error = 'Failed to fetch models: ' + err.message;
-    } finally {
-      fetchingModels = false;
-    }
-  };
-
-  const testApi = async () => {
-    loading = true;
-    result = null;
-    streamingText = '';
-    error = null;
-
-    try {
-      let url = endpoint;
-      let headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      let body: any = {};
-
-      if (apiType === 'openai') {
-        url = url.endsWith('/')
-          ? url + 'v1/chat/completions'
-          : url + '/v1/chat/completions';
-        headers['Authorization'] = `Bearer ${apiKey}`;
-        body = {
-          model: model,
-          messages: [{ role: 'user', content: prompt }],
-          stream: isStreaming,
-        };
-      } else if (apiType === 'gemini') {
-        url = url.endsWith('/') ? url : url + '/';
-        const method = isStreaming
-          ? 'streamGenerateContent'
-          : 'generateContent';
-        url += `v1beta/models/${model}:${method}?key=${apiKey}`;
-        body = { contents: [{ parts: [{ text: prompt }] }] };
-      } else if (apiType === 'claude') {
-        url = url.endsWith('/') ? url + 'v1/messages' : url + '/v1/messages';
-        headers['x-api-key'] = apiKey;
-        headers['anthropic-version'] = '2023-06-01';
-        headers['anthropic-dangerous-direct-browser-access'] = 'true';
-        body = {
-          model: model,
-          max_tokens: 1024,
-          messages: [{ role: 'user', content: prompt }],
-          stream: isStreaming,
-        };
-      }
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(
-          data.error?.message || data.error || JSON.stringify(data),
-        );
-      }
-
-      if (isStreaming && response.body) {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let done = false;
-
-        while (!done) {
-          const { value, done: doneReading } = await reader.read();
-          done = doneReading;
-          const chunkValue = decoder.decode(value);
-
-          if (apiType === 'openai') {
-            const lines = chunkValue
-              .split('\n')
-              .filter((line) => line.trim() !== '');
-            for (const line of lines) {
-              const message = line.replace(/^data: /, '');
-              if (message === '[DONE]') break;
-              try {
-                const parsed = JSON.parse(message);
-                const content = parsed.choices?.[0]?.delta?.content || '';
-                streamingText += content;
-              } catch (e) {}
-            }
-          } else if (apiType === 'gemini') {
-            try {
-              const cleanChunk = chunkValue.trim().replace(/^\[|,|\]$/g, '');
-              if (cleanChunk) {
-                const parsed = JSON.parse(cleanChunk);
-                const content =
-                  parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                streamingText += content;
-              }
-            } catch (e) {
-              if (chunkValue.includes('"text":')) {
-                const match = chunkValue.match(/"text":\s*"([^"]+)"/);
-                if (match) streamingText += match[1].replace(/\\n/g, '\n');
-              }
-            }
-          } else if (apiType === 'claude') {
-            const lines = chunkValue
-              .split('\n')
-              .filter((line) => line.trim() !== '');
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                try {
-                  const data = JSON.parse(line.substring(6));
-                  if (data.type === 'content_block_delta') {
-                    streamingText += data.delta.text;
-                  }
-                } catch (e) {}
-              }
-            }
-          }
-        }
-      } else {
-        const data = await response.json();
-        result = data;
-      }
-    } catch (err: any) {
-      error = err.message || 'Unknown error';
-    } finally {
-      loading = false;
-    }
-  };
-
-  const copyResult = () => {
-    const textToCopy = isStreaming
-      ? streamingText
-      : JSON.stringify(result, null, 2);
-    navigator.clipboard.writeText(textToCopy);
-    showMessage('Copied to clipboard!');
-  };
-
-  const maskKey = (key: string) => {
+  function maskKey(key: string) {
     if (!key || key.length <= 8) return key;
     return key.slice(0, 4) + '****' + key.slice(-4);
+  }
+
+  async function copyToClipboard(text: string, label: string = '内容') {
+    try {
+      await navigator.clipboard.writeText(text);
+      showMessage(`${label}已复制`, 'success');
+    } catch {
+      showMessage('复制失败', 'error');
+    }
+  }
+
+  function toggleKeyVisibility(id: number) {
+    showApiKeyMap[id] = !showApiKeyMap[id];
+  }
+
+  function getEndpointUrl(endpoint: string) {
+    if (!endpoint) return '#';
+    if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) return endpoint;
+    return 'https://' + endpoint;
+  }
+
+  type EndpointGroup = {
+    name: string;
+    endpoints: Record<string, LlmConfig[]>;
   };
+
+  const endpointGroups = $derived.by(() => {
+    const map: Record<string, Record<string, LlmConfig[]>> = {};
+    for (const config of configs) {
+      const eg = config.endpoint_group || '未分组';
+      if (!map[eg]) map[eg] = {};
+      if (!map[eg][config.endpoint]) map[eg][config.endpoint] = [];
+      map[eg][config.endpoint].push(config);
+    }
+    const groups: EndpointGroup[] = Object.entries(map)
+      .sort(([a], [b]) => {
+        if (a === '未分组') return 1;
+        if (b === '未分组') return -1;
+        return a.localeCompare(b);
+      })
+      .map(([name, endpoints]) => ({
+        name,
+        endpoints: Object.fromEntries(
+          Object.entries(endpoints).sort(([a], [b]) => a.localeCompare(b))
+        ),
+      }));
+    return groups;
+  });
+
+  function formatDate(dateStr: string) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  }
+
+  function formatDateTime(dateStr: string) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function addLog(text: string, type: 'info' | 'ok' | 'fail' | 'system' = 'info') {
+    checkLogs = [...checkLogs, { text, type }];
+    if (checkAutoScroll && consoleEl) {
+      requestAnimationFrame(() => {
+        consoleEl!.scrollTop = consoleEl!.scrollHeight;
+      });
+    }
+  }
+
+  async function startModelCheck(config: LlmConfig) {
+    checkingConfig = config;
+    checkLogs = [];
+    checkRunning = true;
+    checkMinimized = false;
+    checkProgress = { done: 0, total: 0 };
+    showCheckModal = true;
+
+    addLog(`开始检测: ${config.endpoint}`, 'system');
+    addLog(`API 类型: ${apiTypeLabels[config.api_type]}`, 'system');
+
+    try {
+      if (config.api_type !== 'openai') {
+        addLog('当前仅支持 OpenAI 兼容接口的模型检测', 'system');
+      }
+
+      addLog('正在获取模型列表...', 'info');
+      const modelsUrl = buildModelsUrl(config.endpoint, config.api_type);
+      const headers: Record<string, string> = {};
+      if (config.api_type === 'openai') {
+        headers['Authorization'] = `Bearer ${config.api_key}`;
+      } else if (config.api_type === 'gemini') {
+        addLog('Gemini 模型检测暂不支持自动测试，仅获取模型列表', 'system');
+      }
+
+      const modelsResp = await fetch(modelsUrl, { headers, signal: AbortSignal.timeout(15000) });
+      if (!modelsResp.ok) {
+        const errText = await modelsResp.text().catch(() => '');
+        throw new Error(`获取模型列表失败: HTTP ${modelsResp.status} ${errText.slice(0, 100)}`);
+      }
+
+      const modelsData = await modelsResp.json();
+      let models: string[] = [];
+      if (config.api_type === 'openai' && modelsData.data) {
+        models = modelsData.data.map((m: any) => m.id);
+      } else if (config.api_type === 'gemini' && modelsData.models) {
+        models = modelsData.models.map((m: any) => m.name.replace('models/', ''));
+      }
+
+      if (models.length === 0) {
+        addLog('未发现任何模型', 'fail');
+        checkRunning = false;
+        return;
+      }
+
+      addLog(`共发现 ${models.length} 个模型，开始逐个检测...`, 'system');
+      checkProgress = { done: 0, total: models.length };
+
+      const available: string[] = [];
+      const unavailable: { model: string; reason: string }[] = [];
+      const MAX_CONCURRENT = 5;
+
+      const queue = [...models];
+      const workers: Promise<void>[] = [];
+
+      for (let i = 0; i < MAX_CONCURRENT; i++) {
+        workers.push((async () => {
+          while (queue.length > 0) {
+            const model = queue.shift();
+            if (!model) break;
+
+            try {
+              const ok = await testSingleModel(config, model);
+              if (ok) {
+                available.push(model);
+                addLog(`[OK]   ${model}`, 'ok');
+              } else {
+                unavailable.push({ model, reason: 'HTTP 非 200' });
+                addLog(`[FAIL] ${model}`, 'fail');
+              }
+            } catch (err: any) {
+              const reason = err.message?.slice(0, 80) || '未知错误';
+              unavailable.push({ model, reason });
+              addLog(`[FAIL] ${model} - ${reason}`, 'fail');
+            }
+
+            checkProgress = { done: checkProgress.done + 1, total: checkProgress.total };
+          }
+        })());
+      }
+
+      await Promise.all(workers);
+
+      addLog('', 'info');
+      addLog('─'.repeat(40), 'system');
+      addLog(`检测完成: 共 ${models.length} 个模型，可用 ${available.length}，不可用 ${unavailable.length}`, 'system');
+
+      if (available.length > 0) {
+        addLog('', 'info');
+        addLog(`可用模型 (${available.length}):`, 'ok');
+        for (const m of available) addLog(`  ${m}`, 'ok');
+      }
+
+      try {
+        await llmModelCheckApi.upsert({
+          llm_config_id: config.id!,
+          available_models: available,
+          unavailable_models: unavailable,
+          total_count: models.length,
+          available_count: available.length,
+        });
+        addLog('检测结果已保存', 'system');
+        await loadCheckHistory();
+      } catch (err: any) {
+        addLog(`保存检测结果失败: ${err.message}`, 'fail');
+      }
+    } catch (err: any) {
+      addLog(`检测出错: ${err.message}`, 'fail');
+    } finally {
+      checkRunning = false;
+      if (checkMinimized) {
+        showMessage(
+          `模型检测完成: ${checkingConfig?.endpoint ?? ''} — 可用 ${checkProgress.done > 0 ? '' : ''}${checkLogs.filter(l => l.type === 'ok').length} 个`,
+          'success',
+          0
+        );
+      }
+    }
+  }
+
+  function buildModelsUrl(endpoint: string, apiType: ApiType): string {
+    let url = endpoint.replace(/\/+$/, '');
+    if (apiType === 'openai') {
+      url += '/v1/models';
+    } else if (apiType === 'gemini') {
+      return url;
+    }
+    return url;
+  }
+
+  async function testSingleModel(config: LlmConfig, model: string): Promise<boolean> {
+    const url = config.endpoint.replace(/\/+$/, '') + '/v1/chat/completions';
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (config.api_type === 'openai') {
+      headers['Authorization'] = `Bearer ${config.api_key}`;
+    }
+
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: 'hi' }],
+        max_tokens: 1,
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    return resp.ok;
+  }
+
+  function viewCheckHistory(config: LlmConfig) {
+    const history = checkHistoryMap[config.id ?? 0];
+    if (!history) return;
+    viewingHistory = history;
+    viewingConfig = config;
+    showHistoryModal = true;
+  }
+
+  async function deleteCheckHistory(configId: number) {
+    if (!(await customConfirm('确定要删除此检测记录吗？'))) return;
+    try {
+      await llmModelCheckApi.deleteByConfigId(configId);
+      showMessage('检测记录已删除', 'success');
+      await loadCheckHistory();
+    } catch (err: any) {
+      showMessage('删除失败: ' + (err.message || '未知错误'), 'error');
+    }
+  }
 </script>
 
-<div class="api-tester-container">
-  <div class="header-section">
-    <h1>LLM API Tester</h1>
-    <p class="subtitle">Quickly verify if your AI API keys and endpoints are working.</p>
+<div class="flex flex-col h-full">
+  <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">LLM 密钥管理</h1>
+      <p class="text-sm text-gray-500 mt-1">管理你的 AI API 密钥与端点配置</p>
+    </div>
+    <button
+      onclick={openAddModal}
+      class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+    >
+      <span class="text-lg leading-none">+</span>
+      <span>添加密钥</span>
+    </button>
   </div>
 
-  <div class="main-layout">
-    <div class="config-column">
-      <div class="card">
-        <div class="form-group">
-          <label>Saved Configs</label>
-          <div class="config-selector">
-            <select
-              onchange={(e) => {
-                const id = Number((e.target as HTMLSelectElement).value);
-                const c = configs.find((c) => c.id === id);
-                if (c) selectConfig(c);
-              }}
-            >
-              {#if configs.length === 0}
-                <option value="">No saved configs</option>
-              {:else}
-                {#each configs as c}
-                  <option value={c.id} selected={c.id === selectedConfigId}>
-                    {typeLabels[c.api_type]} - {maskKey(c.api_key)}
-                  </option>
-                {/each}
-              {/if}
-            </select>
-            <div class="config-actions">
-              <button
-                class="action-btn new-btn"
-                onclick={resetForm}
-                title="New config"
-              >+</button>
-              {#if isEditing}
-                <button
-                  class="action-btn delete-btn"
-                  onclick={deleteConfig}
-                  disabled={deleting}
-                  title="Delete config"
-                >🗑</button>
-              {/if}
-            </div>
-          </div>
+  {#if loading}
+    <div class="text-center py-12">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <p class="mt-2 text-gray-600">加载中...</p>
+    </div>
+  {:else if configs.length === 0}
+    <div class="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400">
+      <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-2xl">🔑</div>
+      <p class="text-gray-500">暂无密钥配置</p>
+      <p class="text-sm">点击上方"添加密钥"开始配置</p>
+    </div>
+  {:else}
+    {#each endpointGroups as eg}
+      <div class="mb-6">
+        <div class="flex items-center gap-2 mb-3">
+          <h2 class="text-base font-semibold text-gray-700">{eg.name}</h2>
+          <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+            {Object.values(eg.endpoints).reduce((s, v) => s + v.length, 0)}
+          </span>
         </div>
+        <div class="space-y-4">
+          {#each Object.entries(eg.endpoints) as [endpoint, cfgs]}
+            <div class="border border-gray-200 rounded-xl overflow-hidden">
+              <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between border-b border-gray-200">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="text-xs font-semibold px-2 py-0.5 rounded {apiTypeColors[cfgs[0].api_type]}">
+                    {apiTypeLabels[cfgs[0].api_type]}
+                  </span>
+                  <a
+                    href={getEndpointUrl(endpoint)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-sm text-blue-600 hover:text-blue-800 hover:underline truncate font-mono"
+                    title={endpoint}
+                  >{endpoint}</a>
+                  {#if cfgs[0].endpoint_note}
+                    <span class="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded">{cfgs[0].endpoint_note}</span>
+                  {/if}
+                </div>
+                <div class="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onclick={() => copyToClipboard(endpoint, '端点')}
+                    class="text-gray-400 hover:text-blue-600 p-1 rounded transition-colors"
+                    title="复制端点"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                  <button
+                    onclick={() => addKeyToEndpoint(cfgs[0])}
+                    class="text-gray-400 hover:text-emerald-600 p-1 rounded transition-colors"
+                    title="为此站点添加密钥"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                  <span class="text-xs text-gray-400 ml-1">{cfgs.length} 个密钥</span>
+                </div>
+              </div>
+              <div class="divide-y divide-gray-100">
+                {#each cfgs as config (config.id)}
+                  {@const history = checkHistoryMap[config.id ?? 0]}
+                  <div class="px-4 py-3 hover:bg-gray-50/50 transition-colors">
+                    <div class="flex items-start justify-between gap-4">
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                          {#if config.group}
+                            <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{config.group}</span>
+                          {/if}
+                          {#if config.key_note}
+                            <span class="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded">{config.key_note}</span>
+                          {/if}
+                        </div>
 
-        <div class="form-group">
-          <label for="api-format">API Format</label>
-          <div class="tabs" id="api-format">
-            {#each apiTypes as type}
+                        <div class="flex items-center gap-2 text-sm">
+                          <span class="text-gray-400 w-10 flex-shrink-0 text-xs">密钥</span>
+                          <code class="text-gray-700 bg-gray-50 px-2 py-0.5 rounded text-xs font-mono truncate">
+                            {showApiKeyMap[config.id ?? 0] ? config.api_key : maskKey(config.api_key)}
+                          </code>
+                          <button
+                            onclick={() => toggleKeyVisibility(config.id ?? 0)}
+                            class="text-gray-400 hover:text-gray-600 flex-shrink-0 transition-colors"
+                            title={showApiKeyMap[config.id ?? 0] ? '隐藏密钥' : '显示密钥'}
+                          >
+                            {#if showApiKeyMap[config.id ?? 0]}
+                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                              </svg>
+                            {:else}
+                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            {/if}
+                          </button>
+                          <button
+                            onclick={() => copyToClipboard(config.api_key, '密钥')}
+                            class="text-gray-400 hover:text-blue-600 flex-shrink-0 transition-colors"
+                            title="复制密钥"
+                          >
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </button>
+                        </div>
+
+                        {#if history}
+                          <button
+                            onclick={() => viewCheckHistory(config)}
+                            class="flex items-center gap-2 text-xs mt-1.5 group cursor-pointer"
+                            title="点击查看检测详情"
+                          >
+                            <span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-medium group-hover:bg-emerald-100 transition-colors">
+                              {history.available_count}/{history.total_count} 可用
+                            </span>
+                            <span class="text-gray-400 group-hover:text-gray-600 transition-colors">检测于 {formatDateTime(history.created_at)}</span>
+                            <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                          </button>
+                        {/if}
+
+                        {#if config.created_at && !history}
+                          <div class="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                            <span>添加于 {formatDate(config.created_at)}</span>
+                          </div>
+                        {/if}
+                      </div>
+
+                      <div class="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          onclick={() => startModelCheck(config)}
+                          disabled={checkRunning}
+                          class="text-gray-400 hover:text-emerald-600 p-1.5 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                          title="检测模型可用性"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </button>
+                        {#if history}
+                          <button
+                            onclick={() => deleteCheckHistory(config.id!)}
+                            class="text-gray-400 hover:text-amber-600 p-1.5 rounded-lg hover:bg-amber-50 transition-colors"
+                            title="删除检测记录"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        {/if}
+                        <button
+                          onclick={() => openEditModal(config)}
+                          class="text-gray-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                          title="编辑"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onclick={() => deleteConfig(config.id!)}
+                          class="text-gray-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                          title="删除"
+                        >
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/each}
+        </div>
+      </div>
+    {/each}
+  {/if}
+</div>
+
+{#if showEditModal}
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => { if (e.target === e.currentTarget) showEditModal = false; }} onkeydown={(e) => { if (e.key === 'Escape') showEditModal = false; }}>
+    <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
+      <h3 class="text-xl font-bold mb-5">{isNew ? '添加密钥' : '编辑密钥'}</h3>
+      <div class="space-y-4">
+        <div>
+          <label for="edit-api-type" class="block text-sm font-medium text-gray-700 mb-1">API 类型</label>
+          <div id="edit-api-type" class="flex gap-1 bg-gray-100 p-1 rounded-lg">
+            {#each (['openai', 'gemini', 'claude'] as const) as type}
               <button
-                class:active={apiType === type.value}
-                onclick={() => handleTypeChange(type.value as ApiType)}
+                type="button"
+                class="flex-1 py-2 text-sm font-medium rounded-md transition-all
+                  {editForm.api_type === type ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
+                onclick={() => (editForm.api_type = type)}
               >
-                {type.label}
+                {apiTypeLabels[type]}
               </button>
             {/each}
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="endpoint">Base Endpoint</label>
+        <div>
+          <label for="edit-endpoint" class="block text-sm font-medium text-gray-700 mb-1">端点 (Endpoint)</label>
           <input
-            id="endpoint"
+            id="edit-endpoint"
+            bind:value={editForm.endpoint}
             type="text"
-            bind:value={endpoint}
-            placeholder="https://api.example.com"
+            placeholder="https://api.openai.com"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
-        <div class="form-group">
-          <label for="api-key">API Key</label>
+        <div>
+          <label for="edit-api-key" class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
           <input
-            id="api-key"
-            type="password"
-            bind:value={apiKey}
+            id="edit-api-key"
+            bind:value={editForm.api_key}
+            type="text"
             placeholder="sk-..."
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
           />
         </div>
 
-        <div class="form-group">
-          <label for="model-name">Model Name</label>
-          <div class="model-input-group">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="edit-key-note" class="block text-sm font-medium text-gray-700 mb-1">密钥备注</label>
             <input
-              id="model-name"
+              id="edit-key-note"
+              bind:value={editForm.key_note}
               type="text"
-              list="models-list"
-              bind:value={model}
-              placeholder="gpt-3.5-turbo"
+              placeholder="密钥用途说明"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
-            <datalist id="models-list">
-              {#each availableModels as m}
-                <option value={m}></option>
-              {/each}
-            </datalist>
-            <button
-              class="fetch-btn"
-              onclick={fetchModels}
-              disabled={fetchingModels || !apiKey}
-            >
-              {fetchingModels ? '...' : 'Fetch'}
-            </button>
+          </div>
+          <div>
+            <label for="edit-endpoint-note" class="block text-sm font-medium text-gray-700 mb-1">端点备注</label>
+            <input
+              id="edit-endpoint-note"
+              bind:value={editForm.endpoint_note}
+              type="text"
+              placeholder="端点来源说明"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
         </div>
 
-        <div class="form-group toggle-group">
-          <label class="toggle">
-            <span class="toggle-label">Enable Streaming</span>
-            <input type="checkbox" bind:checked={isStreaming} />
-            <span class="toggle-track" class:active={isStreaming}></span>
-          </label>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="edit-group" class="block text-sm font-medium text-gray-700 mb-1">密钥分组</label>
+            <input
+              id="edit-group"
+              bind:value={editForm.group}
+              type="text"
+              placeholder="如：个人、公司、备用"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label for="edit-endpoint-group" class="block text-sm font-medium text-gray-700 mb-1">站点分组</label>
+            <input
+              id="edit-endpoint-group"
+              bind:value={editForm.endpoint_group}
+              type="text"
+              placeholder="如：QQ群签到、自建、官方"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
         </div>
+      </div>
 
-        <div class="form-group">
-          <label for="prompt">Test Prompt</label>
-          <textarea id="prompt" bind:value={prompt} rows={3}></textarea>
+      <div class="mt-6 flex justify-end gap-3">
+        <button
+          onclick={() => (showEditModal = false)}
+          class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+        >
+          取消
+        </button>
+        <button
+          onclick={saveConfig}
+          disabled={saving}
+          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+        >
+          {saving ? '保存中...' : '保存'}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if showCheckModal && !checkMinimized}
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl flex flex-col" style="max-height: 80vh;">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+        <div class="flex items-center gap-2">
+          <div class="flex gap-1.5">
+            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+          </div>
+          <span class="text-gray-400 text-sm ml-2 font-mono">
+            {checkingConfig?.endpoint ?? ''} — 模型检测
+          </span>
         </div>
-
-        <div class="btn-row">
-          <button class="save-btn" onclick={saveConfig} disabled={saving || !apiKey}>
-            {saving ? 'Saving...' : isEditing ? '💾 Update' : '💾 Save New'}
-          </button>
-          <button class="test-btn" onclick={testApi} disabled={loading}>
-            {loading ? 'Testing...' : 'Test Connection'}
+        <div class="flex items-center gap-3">
+          {#if checkRunning}
+            <span class="text-xs text-gray-500 font-mono">
+              {checkProgress.done}/{checkProgress.total}
+            </span>
+          {/if}
+          {#if checkRunning}
+            <button
+              onclick={() => { checkMinimized = true; }}
+              class="text-gray-500 hover:text-gray-300 transition-colors"
+              aria-label="最小化"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+              </svg>
+            </button>
+          {/if}
+          <button
+            onclick={() => { showCheckModal = false; checkMinimized = false; }}
+            class="text-gray-500 hover:text-gray-300 transition-colors"
+            aria-label="关闭"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
       </div>
-    </div>
 
-    <div class="result-column">
-      {#if error}
-        <div class="error-box">
-          <h3>Error</h3>
-          <pre>{error}</pre>
-          <p class="hint">Check endpoint URL or browser CORS restrictions.</p>
-        </div>
-      {/if}
+      <div
+        bind:this={consoleEl}
+        class="flex-1 overflow-y-auto p-4 font-mono text-sm leading-relaxed"
+      >
+        {#each checkLogs as log, i}
+          <div
+            class="whitespace-pre-wrap break-all
+              {log.type === 'ok' ? 'text-emerald-400' : ''}
+              {log.type === 'fail' ? 'text-red-400' : ''}
+              {log.type === 'system' ? 'text-sky-400' : ''}
+              {log.type === 'info' ? 'text-gray-300' : ''}"
+          >
+            {log.text || '\u00A0'}
+          </div>
+        {/each}
+        {#if checkRunning}
+          <div class="text-gray-500 animate-pulse">▌</div>
+        {/if}
+      </div>
 
-      {#if result || streamingText || loading}
-        <div class="result-box">
-          <div class="result-header">
-            <h3>Response</h3>
-            <button
-              class="copy-btn"
-              onclick={copyResult}
-              disabled={!streamingText && !result}>Copy Output</button
-            >
-          </div>
-          <div class="response-content">
-            <div class="preview-text">
-              {#if isStreaming}
-                {streamingText || (loading ? 'Waiting for stream...' : '')}
-              {:else if result}
-                {#if apiType === 'openai'}
-                  {result.choices?.[0]?.message?.content}
-                {:else if apiType === 'gemini'}
-                  {result.candidates?.[0]?.content?.parts?.[0]?.text}
-                {:else if apiType === 'claude'}
-                  {result.content?.[0]?.text}
-                {/if}
-              {/if}
-            </div>
-            {#if !isStreaming && result}
-              <details open>
-                <summary>Raw JSON Response</summary>
-                <pre class="raw-json">{JSON.stringify(result, null, 2)}</pre>
-              </details>
-            {/if}
-          </div>
-        </div>
-      {:else}
-        <div class="empty-state">
-          <div class="empty-state-icon">⚡</div>
-          <p>Configure the API and click "Test Connection"</p>
-          <p class="empty-sub">Response will appear here</p>
+      {#if !checkRunning && checkLogs.length > 0}
+        <div class="px-4 py-3 border-t border-gray-700 flex justify-end gap-2">
+          <button
+            onclick={() => {
+              const text = checkLogs.map(l => l.text).join('\n');
+              copyToClipboard(text, '检测日志');
+            }}
+            class="text-gray-400 hover:text-gray-200 text-sm px-3 py-1.5 rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            复制日志
+          </button>
+          <button
+            onclick={() => { showCheckModal = false; checkMinimized = false; }}
+            class="bg-gray-700 text-gray-200 text-sm px-4 py-1.5 rounded-lg hover:bg-gray-600 transition-colors"
+          >
+            关闭
+          </button>
         </div>
       {/if}
     </div>
   </div>
-
-  <footer class="footer">
-    <p>Supported: OpenAI, Google Gemini, Anthropic Claude</p>
-  </footer>
-</div>
-
-<style>
-  @keyframes shimmer {
-    0% {
-      background-position: -200% 0;
-    }
-    100% {
-      background-position: 200% 0;
-    }
-  }
-
-  @keyframes pulse-glow {
-    0%,
-    100% {
-      box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
-    }
-    50% {
-      box-shadow: 0 0 16px 2px rgba(99, 102, 241, 0.2);
-    }
-  }
-
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-      transform: translateY(6px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .api-tester-container {
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-    overflow: hidden;
-    color: #1e293b;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-      sans-serif;
-    height: 100%;
-  }
-
-  .header-section {
-    flex-shrink: 0;
-    margin-bottom: 1.25rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .header-section h1 {
-    margin: 0;
-    font-size: 1.6rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, #6366f1, #7c3aed);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: -0.02em;
-  }
-
-  .subtitle {
-    color: #94a3b8;
-    margin: 0;
-    font-size: 0.85rem;
-    font-weight: 400;
-  }
-
-  .main-layout {
-    display: grid;
-    grid-template-columns: 440px 1fr;
-    gap: 1.5rem;
-    flex: 1;
-    min-height: 0;
-  }
-
-  .config-column {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    height: 100%;
-  }
-
-  .card {
-    background: #ffffff;
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow:
-      0 1px 3px rgba(0, 0, 0, 0.06),
-      0 4px 16px rgba(0, 0, 0, 0.04);
-    border: 1px solid #e2e8f0;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    box-sizing: border-box;
-    overflow-y: auto;
-  }
-
-  .card::-webkit-scrollbar {
-    width: 5px;
-  }
-  .card::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .card::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
-  }
-  .card::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-  }
-
-  .form-group {
-    margin-bottom: 1rem;
-    flex-shrink: 0;
-  }
-
-  .form-group label {
-    display: block;
-    margin-bottom: 0.45rem;
-    font-weight: 600;
-    font-size: 0.7rem;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-
-  .config-selector {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-  }
-
-  .config-selector select {
-    flex: 1;
-    padding: 0.65rem 0.85rem;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    color: #1e293b;
-    font-family: inherit;
-    font-size: 0.88rem;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    appearance: auto;
-  }
-
-  .config-selector select:hover {
-    border-color: #c7d2fe;
-  }
-
-  .config-selector select:focus {
-    outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    background: #ffffff;
-  }
-
-  .config-actions {
-    display: flex;
-    gap: 0.35rem;
-  }
-
-  .action-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    border: 1px solid #e2e8f0;
-    background: #f8fafc;
-    cursor: pointer;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .new-btn:hover {
-    background: #eef2ff;
-    border-color: #c7d2fe;
-    color: #6366f1;
-  }
-
-  .delete-btn:hover {
-    background: #fef2f2;
-    border-color: #fecaca;
-    color: #dc2626;
-  }
-
-  .delete-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .tabs {
-    display: flex;
-    gap: 3px;
-    background: #f1f5f9;
-    padding: 4px;
-    border-radius: 10px;
-    border: 1px solid #e2e8f0;
-  }
-
-  .tabs button {
-    flex: 1;
-    background: transparent;
-    border: none;
-    padding: 0.5rem 0.25rem;
-    color: #64748b;
-    cursor: pointer;
-    border-radius: 7px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    position: relative;
-  }
-
-  .tabs button:hover:not(.active) {
-    color: #334155;
-    background: rgba(255, 255, 255, 0.7);
-  }
-
-  .tabs button.active {
-    background: linear-gradient(135deg, #6366f1, #7c3aed);
-    color: white;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
-  }
-
-  input:not([type='checkbox']),
-  textarea {
-    width: 100%;
-    padding: 0.65rem 0.85rem;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    color: #1e293b;
-    box-sizing: border-box;
-    font-family: inherit;
-    font-size: 0.88rem;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  input:not([type='checkbox']):hover,
-  textarea:hover {
-    border-color: #c7d2fe;
-  }
-
-  input:focus,
-  textarea:focus {
-    outline: none;
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    background: #ffffff;
-  }
-
-  textarea {
-    resize: vertical;
-    min-height: 60px;
-  }
-
-  .model-input-group {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .model-input-group input {
-    flex: 1;
-  }
-
-  .fetch-btn {
-    background: #eef2ff;
-    border: 1px solid #c7d2fe;
-    color: #6366f1;
-    padding: 0 1rem;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 0.72rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    white-space: nowrap;
-  }
-
-  .fetch-btn:hover:not(:disabled) {
-    background: #e0e7ff;
-    border-color: #a5b4fc;
-    color: #4f46e5;
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.1);
-  }
-
-  .fetch-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .toggle-group {
-    margin-top: 0.25rem;
-    padding: 0.65rem 0.85rem;
-    background: #f8fafc;
-    border-radius: 10px;
-    border: 1px solid #e2e8f0;
-  }
-
-  .toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    cursor: pointer;
-    font-size: 0.85rem;
-    color: #475569;
-    user-select: none;
-  }
-
-  .toggle input[type='checkbox'] {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  .toggle-track {
-    position: relative;
-    width: 40px;
-    height: 22px;
-    background: #cbd5e1;
-    border-radius: 11px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    flex-shrink: 0;
-  }
-
-  .toggle-track::after {
-    content: '';
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 16px;
-    height: 16px;
-    background: white;
-    border-radius: 50%;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  }
-
-  .toggle-track.active {
-    background: linear-gradient(135deg, #6366f1, #7c3aed);
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
-  }
-
-  .toggle-track.active::after {
-    transform: translateX(18px);
-    background: white;
-  }
-
-  .toggle-label {
-    font-weight: 500;
-  }
-
-  .btn-row {
-    display: flex;
-    gap: 0.75rem;
-    margin-top: 1.25rem;
-    flex-shrink: 0;
-  }
-
-  .save-btn {
-    padding: 0.85rem 1.25rem;
-    background: #f8fafc;
-    color: #64748b;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    white-space: nowrap;
-  }
-
-  .save-btn:hover:not(:disabled) {
-    background: #eef2ff;
-    border-color: #c7d2fe;
-    color: #6366f1;
-  }
-
-  .save-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .test-btn {
-    flex: 1;
-    padding: 0.85rem;
-    background: linear-gradient(135deg, #6366f1, #7c3aed);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    letter-spacing: 0.02em;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .test-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.15),
-      transparent
-    );
-    background-size: 200% 100%;
-    animation: shimmer 3s infinite;
-    opacity: 0;
-    transition: opacity 0.3s;
-  }
-
-  .test-btn:hover:not(:disabled)::before {
-    opacity: 1;
-  }
-
-  .test-btn:hover:not(:disabled) {
-    box-shadow:
-      0 4px 20px rgba(99, 102, 241, 0.35),
-      0 0 40px rgba(99, 102, 241, 0.08);
-    transform: translateY(-1px);
-  }
-
-  .test-btn:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: 0 2px 10px rgba(99, 102, 241, 0.25);
-  }
-
-  .test-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    animation: pulse-glow 2s infinite;
-  }
-
-  .result-column {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    height: 100%;
-    background: #ffffff;
-    border-radius: 16px;
-    border: 1px solid #e2e8f0;
-    padding: 1.5rem;
-    box-sizing: border-box;
-    box-shadow:
-      0 1px 3px rgba(0, 0, 0, 0.06),
-      0 4px 16px rgba(0, 0, 0, 0.04);
-  }
-
-  .result-box {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    animation: fade-in 0.3s ease-out;
-  }
-
-  .result-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid #f1f5f9;
-  }
-
-  .result-header h3 {
-    margin: 0;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-weight: 700;
-    background: linear-gradient(135deg, #6366f1, #7c3aed);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .response-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-
-  .preview-text {
-    background: #0f172a;
-    padding: 1.15rem;
-    border-radius: 12px;
-    white-space: pre-wrap;
-    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-    font-size: 0.9rem;
-    line-height: 1.65;
-    flex: 1;
-    color: #34d399;
-    overflow-y: auto;
-    border: 1px solid #1e293b;
-    animation: fade-in 0.3s ease-out;
-  }
-
-  .preview-text::-webkit-scrollbar {
-    width: 5px;
-  }
-  .preview-text::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .preview-text::-webkit-scrollbar-thumb {
-    background: rgba(52, 211, 153, 0.2);
-    border-radius: 10px;
-  }
-  .preview-text::-webkit-scrollbar-thumb:hover {
-    background: rgba(52, 211, 153, 0.35);
-  }
-
-  .copy-btn {
-    background: #f8fafc;
-    color: #64748b;
-    border: 1px solid #e2e8f0;
-    padding: 0.4rem 0.85rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .copy-btn:hover:not(:disabled) {
-    background: #eef2ff;
-    border-color: #c7d2fe;
-    color: #6366f1;
-  }
-
-  .copy-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .error-box {
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    padding: 1.15rem;
-    border-radius: 12px;
-    margin-bottom: 1rem;
-    animation: fade-in 0.3s ease-out;
-  }
-
-  .error-box h3 {
-    margin: 0 0 0.5rem 0;
-    color: #dc2626;
-    font-size: 0.85rem;
-    font-weight: 700;
-  }
-
-  .error-box pre {
-    white-space: pre-wrap;
-    word-break: break-all;
-    color: #991b1b;
-    font-size: 0.82rem;
-    margin: 0;
-    line-height: 1.5;
-  }
-
-  .error-box .hint {
-    margin: 0.65rem 0 0 0;
-    color: #94a3b8;
-    font-size: 0.75rem;
-    font-style: italic;
-  }
-
-  .raw-json {
-    background: #f8fafc;
-    padding: 1rem;
-    border-radius: 10px;
-    font-size: 0.78rem;
-    margin: 0.75rem 0 0 0;
-    color: #64748b;
-    border: 1px solid #e2e8f0;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
-    line-height: 1.6;
-  }
-
-  .empty-state {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-  }
-
-  .empty-state-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: #eef2ff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #6366f1;
-    font-size: 1.25rem;
-    margin-bottom: 0.25rem;
-  }
-
-  .empty-state p {
-    color: #64748b;
-    font-size: 0.88rem;
-    margin: 0;
-  }
-
-  .empty-state .empty-sub {
-    color: #94a3b8;
-    font-size: 0.78rem;
-  }
-
-  details {
-    margin-top: 0.75rem;
-  }
-
-  summary {
-    cursor: pointer;
-    color: #64748b;
-    font-size: 0.78rem;
-    font-weight: 500;
-    padding: 0.35rem 0;
-    transition: color 0.2s;
-    user-select: none;
-  }
-
-  summary:hover {
-    color: #334155;
-  }
-
-  .footer {
-    margin-top: 1.25rem;
-    text-align: center;
-    color: #94a3b8;
-    font-size: 0.75rem;
-    padding-top: 1rem;
-    border-top: 1px solid #f1f5f9;
-    letter-spacing: 0.02em;
-  }
-
-  @media (max-width: 1024px) {
-    .main-layout {
-      grid-template-columns: 1fr;
-    }
-    .api-tester-container {
-      overflow: visible;
-    }
-    .result-column {
-      min-height: 400px;
-    }
-  }
-</style>
+{/if}
+
+{#if checkMinimized && showCheckModal}
+  <button
+    onclick={() => { checkMinimized = false; }}
+    class="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-gray-900 text-white pl-4 pr-3 py-2.5 rounded-full shadow-lg hover:bg-gray-800 transition-colors group"
+    aria-label="恢复检测窗口"
+  >
+    {#if checkRunning}
+      <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+      <span class="text-sm font-mono">{checkProgress.done}/{checkProgress.total}</span>
+    {:else}
+      <div class="w-2 h-2 rounded-full bg-sky-400"></div>
+      <span class="text-sm">检测完成</span>
+    {/if}
+    <svg class="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+    </svg>
+  </button>
+{/if}
+
+{#if showHistoryModal && viewingHistory && viewingConfig}
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => { if (e.target === e.currentTarget) showHistoryModal = false; }} onkeydown={(e) => { if (e.key === 'Escape') showHistoryModal = false; }}>
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col" style="max-height: 80vh;">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div>
+          <h3 class="text-lg font-bold text-gray-900">模型检测记录</h3>
+          <p class="text-xs text-gray-500 mt-0.5 font-mono">{viewingConfig.endpoint}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            onclick={() => copyToClipboard((viewingHistory!.available_models || []).join('\n'), '可用模型列表')}
+            class="text-gray-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+            title="复制可用模型列表"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </button>
+          <button
+            onclick={() => { showHistoryModal = false; }}
+            class="text-gray-400 hover:text-gray-600 transition-colors"
+            aria-label="关闭"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="px-6 py-3 bg-gray-50 border-b border-gray-100 flex items-center gap-4 text-sm">
+        <span class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span class="text-emerald-700 font-semibold">{viewingHistory.available_count} 可用</span>
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-red-400"></span>
+          <span class="text-red-600 font-semibold">{viewingHistory.total_count - viewingHistory.available_count} 不可用</span>
+        </span>
+        <span class="text-gray-400">|</span>
+        <span class="text-gray-500">共 {viewingHistory.total_count} 个模型</span>
+        <span class="text-gray-400">|</span>
+        <span class="text-gray-400">{formatDateTime(viewingHistory.created_at)}</span>
+      </div>
+
+      <div class="flex-1 overflow-y-auto px-6 py-4">
+        {#if (viewingHistory.available_models || []).length > 0}
+          <div class="mb-5">
+            <h4 class="text-sm font-semibold text-emerald-700 mb-2 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              可用模型 ({viewingHistory.available_count})
+            </h4>
+            <div class="space-y-0.5">
+              {#each [...(viewingHistory.available_models || [])].sort((a, b) => a.localeCompare(b)) as model}
+                <div class="text-xs font-mono text-emerald-700 bg-emerald-50/50 px-2 py-1 rounded hover:bg-emerald-50 transition-colors">
+                  {model}
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        {#if (viewingHistory.unavailable_models || []).length > 0}
+          <div>
+            <h4 class="text-sm font-semibold text-red-600 mb-2 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              不可用模型 ({viewingHistory.total_count - viewingHistory.available_count})
+            </h4>
+            <div class="space-y-0.5">
+              {#each [...(viewingHistory.unavailable_models || [])].sort((a, b) => a.model.localeCompare(b.model)) as item}
+                <div class="flex items-baseline gap-2 text-xs px-2 py-1 rounded hover:bg-red-50 transition-colors">
+                  <span class="text-red-400 flex-shrink-0">✕</span>
+                  <span class="font-mono text-gray-700">{item.model}</span>
+                  <span class="text-gray-400 truncate" title={item.reason}>{item.reason}</span>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
+
+        {#if (viewingHistory.available_models || []).length === 0 && (viewingHistory.unavailable_models || []).length === 0}
+          <div class="text-center py-8 text-gray-400">
+            <p>暂无模型数据</p>
+          </div>
+        {/if}
+      </div>
+
+      <div class="px-6 py-3 border-t border-gray-200 flex justify-between items-center">
+        <button
+          onclick={async () => {
+            showHistoryModal = false;
+            await deleteCheckHistory(viewingConfig!.id!);
+          }}
+          class="text-red-400 hover:text-red-600 text-sm px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+        >
+          删除记录
+        </button>
+        <button
+          onclick={() => { showHistoryModal = false; }}
+          class="bg-gray-100 text-gray-700 text-sm px-4 py-1.5 rounded-lg hover:bg-gray-200 transition-colors"
+        >
+          关闭
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}

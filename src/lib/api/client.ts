@@ -13,6 +13,7 @@ interface ApiRequestConfig {
   params?: Record<string, string | number>;
   timeout?: number;
   useStandardFormat?: boolean;
+  showSuccessMsg?: boolean;
 }
 
 class ApiClient {
@@ -50,7 +51,8 @@ class ApiClient {
       body,
       params,
       timeout = 30000,
-      useStandardFormat = true
+      useStandardFormat = true,
+      showSuccessMsg = false
     } = config;
 
     try {
@@ -105,7 +107,9 @@ class ApiClient {
         return data;
       }
       if(data.msg){
-        showMessage(data.msg,data.status);
+        if(data.status === 'error' || showSuccessMsg){
+          showMessage(data.msg, data.status);
+        }
       }
       return data.data;
     } catch (error) {
