@@ -20,11 +20,20 @@
   };
 
   let configs = $state<LlmConfig[]>([]);
-  let checkHistoryMap = $state<Record<number, LlmModelCheck>>({});
   let loading = $state(false);
   let showEditModal = $state(false);
   let isNew = $state(false);
   let saving = $state(false);
+
+  let currentPage = $state(1);
+  let total = $state(0);
+  const PAGE_SIZE_OPTIONS = [4, 10, 20, 50];
+  let pageSize = $state(4);
+
+  let filterGroup = $state('');
+  let filterEndpointGroup = $state('');
+  let availableGroups = $state<string[]>([]);
+  let availableEndpointGroups = $state<string[]>([]);
 
   let editForm = $state({
     api_type: 'openai' as ApiType,
@@ -52,16 +61,17 @@
   let viewingHistory = $state<LlmModelCheck | null>(null);
   let viewingConfig = $state<LlmConfig | null>(null);
 
-  onMount(async () => {
-    await loadConfigs();
-  });
-
   async function loadConfigs() {
     loading = true;
     try {
-      const res = await llmConfigApi.list();
+      const filters: { group?: string; endpoint_group?: string } = {};
+      if (filterGroup && filterGroup !== '__none__') filters.group = filterGroup;
+      else if (filterGroup === '__none__') filters.group = '';
+      if (filterEndpointGroup && filterEndpointGroup !== '__none__') filters.endpoint_group = filterEndpointGroup;
+      else if (filterEndpointGroup === '__none__') filters.endpoint_group = '';
+      const res = await llmConfigApi.list(currentPage, pageSize, filters);
       configs = res.list || [];
-      await loadCheckHistory();
+      total = res.total || 0;
     } catch {
       showMessage('加载配置失败', 'error');
     } finally {
@@ -69,16 +79,17 @@
     }
   }
 
-  async function loadCheckHistory() {
+  async function loadFilterGroups() {
     try {
-      const res = await llmModelCheckApi.listAll();
-      const map: Record<number, LlmModelCheck> = {};
-      for (const item of res.list || []) {
-        map[item.llm_config] = item;
-      }
-      checkHistoryMap = map;
+      const res = await llmConfigApi.getGroups();
+      availableGroups = res.groups || [];
+      availableEndpointGroups = res.endpoint_groups || [];
     } catch {}
   }
+
+  onMount(async () => {
+    await Promise.all([loadConfigs(), loadFilterGroups()]);
+  });
 
   function openAddModal() {
     editForm = {
@@ -141,7 +152,7 @@
         await llmConfigApi.update(editingId, payload);
         showMessage('更新成功', 'success');
       }
-      await loadConfigs();
+      await Promise.all([loadConfigs(), loadFilterGroups()]);
       showEditModal = false;
     } catch (err: any) {
       showMessage('保存失败: ' + (err.message || '未知错误'), 'error');
@@ -155,10 +166,27 @@
     try {
       await llmConfigApi.delete(id);
       showMessage('删除成功', 'success');
-      await loadConfigs();
+      currentPage = 1;
+      await Promise.all([loadConfigs(), loadFilterGroups()]);
     } catch (err: any) {
       showMessage('删除失败: ' + (err.message || '未知错误'), 'error');
     }
+  }
+
+  function onFilterChange() {
+    currentPage = 1;
+    loadConfigs();
+  }
+
+  function goToPage(page: number) {
+    currentPage = page;
+    loadConfigs();
+  }
+
+  function onPageSizeChange(val: number) {
+    pageSize = val;
+    currentPage = 1;
+    loadConfigs();
   }
 
   function maskKey(key: string) {
@@ -184,34 +212,6 @@
     if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) return endpoint;
     return 'https://' + endpoint;
   }
-
-  type EndpointGroup = {
-    name: string;
-    endpoints: Record<string, LlmConfig[]>;
-  };
-
-  const endpointGroups = $derived.by(() => {
-    const map: Record<string, Record<string, LlmConfig[]>> = {};
-    for (const config of configs) {
-      const eg = config.endpoint_group || '未分组';
-      if (!map[eg]) map[eg] = {};
-      if (!map[eg][config.endpoint]) map[eg][config.endpoint] = [];
-      map[eg][config.endpoint].push(config);
-    }
-    const groups: EndpointGroup[] = Object.entries(map)
-      .sort(([a], [b]) => {
-        if (a === '未分组') return 1;
-        if (b === '未分组') return -1;
-        return a.localeCompare(b);
-      })
-      .map(([name, endpoints]) => ({
-        name,
-        endpoints: Object.fromEntries(
-          Object.entries(endpoints).sort(([a], [b]) => a.localeCompare(b))
-        ),
-      }));
-    return groups;
-  });
 
   function formatDate(dateStr: string) {
     if (!dateStr) return '';
@@ -328,7 +328,7 @@
       }
 
       try {
-        await llmModelCheckApi.upsert({
+        const saved = await llmModelCheckApi.upsert({
           llm_config_id: config.id!,
           available_models: available,
           unavailable_models: unavailable,
@@ -336,7 +336,8 @@
           available_count: available.length,
         });
         addLog('检测结果已保存', 'system');
-        await loadCheckHistory();
+        const idx = configs.findIndex(c => c.id === config.id);
+        if (idx !== -1) configs[idx].check_history = saved;
       } catch (err: any) {
         addLog(`保存检测结果失败: ${err.message}`, 'fail');
       }
@@ -389,7 +390,7 @@
   }
 
   function viewCheckHistory(config: LlmConfig) {
-    const history = checkHistoryMap[config.id ?? 0];
+    const history = config.check_history;
     if (!history) return;
     viewingHistory = history;
     viewingConfig = config;
@@ -401,7 +402,8 @@
     try {
       await llmModelCheckApi.deleteByConfigId(configId);
       showMessage('检测记录已删除', 'success');
-      await loadCheckHistory();
+      const idx = configs.findIndex(c => c.id === configId);
+      if (idx !== -1) configs[idx].check_history = undefined;
     } catch (err: any) {
       showMessage('删除失败: ' + (err.message || '未知错误'), 'error');
     }
@@ -435,175 +437,213 @@
       <p class="text-sm">点击上方"添加密钥"开始配置</p>
     </div>
   {:else}
-    {#each endpointGroups as eg}
-      <div class="mb-6">
-        <div class="flex items-center gap-2 mb-3">
-          <h2 class="text-base font-semibold text-gray-700">{eg.name}</h2>
-          <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-            {Object.values(eg.endpoints).reduce((s, v) => s + v.length, 0)}
-          </span>
-        </div>
-        <div class="space-y-4">
-          {#each Object.entries(eg.endpoints) as [endpoint, cfgs]}
-            <div class="border border-gray-200 rounded-xl overflow-hidden">
-              <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between border-b border-gray-200">
-                <div class="flex items-center gap-2 min-w-0">
-                  <span class="text-xs font-semibold px-2 py-0.5 rounded {apiTypeColors[cfgs[0].api_type]}">
-                    {apiTypeLabels[cfgs[0].api_type]}
-                  </span>
-                  <a
-                    href={getEndpointUrl(endpoint)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-sm text-blue-600 hover:text-blue-800 hover:underline truncate font-mono"
-                    title={endpoint}
-                  >{endpoint}</a>
-                  {#if cfgs[0].endpoint_note}
-                    <span class="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded">{cfgs[0].endpoint_note}</span>
+    <div class="flex flex-wrap gap-3 mb-4">
+      <select
+        value={filterGroup}
+        onchange={(e) => { filterGroup = (e.target as HTMLSelectElement).value; onFilterChange(); }}
+        class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      >
+        <option value="">全部密钥分组</option>
+        <option value="__none__">(无)</option>
+        {#each availableGroups as g}
+          <option value={g}>{g}</option>
+        {/each}
+      </select>
+      <select
+        value={filterEndpointGroup}
+        onchange={(e) => { filterEndpointGroup = (e.target as HTMLSelectElement).value; onFilterChange(); }}
+        class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      >
+        <option value="">全部站点分组</option>
+        <option value="__none__">(无)</option>
+        {#each availableEndpointGroups as eg}
+          <option value={eg}>{eg}</option>
+        {/each}
+      </select>
+      {#if filterGroup || filterEndpointGroup}
+        <button
+          onclick={() => { filterGroup = ''; filterEndpointGroup = ''; onFilterChange(); }}
+          class="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+        >清除筛选</button>
+      {/if}
+      <span class="ml-auto text-sm text-gray-400 self-center">共 {total} 条</span>
+    </div>
+
+    <div class="space-y-3">
+      {#each configs as config (config.id)}
+        {@const history = config.check_history}
+        <div class="border border-gray-200 rounded-xl overflow-hidden hover:border-gray-300 transition-colors">
+          <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between border-b border-gray-200">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-xs font-semibold px-2 py-0.5 rounded {apiTypeColors[config.api_type]}">
+                {apiTypeLabels[config.api_type]}
+              </span>
+              <a
+                href={getEndpointUrl(config.endpoint)}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-sm text-blue-600 hover:text-blue-800 hover:underline truncate font-mono"
+                title={config.endpoint}
+              >{config.endpoint}</a>
+              {#if config.endpoint_note}
+                <span class="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded">{config.endpoint_note}</span>
+              {/if}
+            </div>
+            <div class="flex items-center gap-1 flex-shrink-0">
+              <button
+                onclick={() => copyToClipboard(config.endpoint, '端点')}
+                class="text-gray-400 hover:text-blue-600 p-1 rounded transition-colors"
+                title="复制端点"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              </button>
+              <button
+                onclick={() => addKeyToEndpoint(config)}
+                class="text-gray-400 hover:text-emerald-600 p-1 rounded transition-colors"
+                title="为此站点添加密钥"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+              </button>
+            </div>
+          </div>
+          <div class="px-4 py-3 hover:bg-gray-50/50 transition-colors">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1.5 flex-wrap">
+                  {#if config.group}
+                    <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{config.group}</span>
+                  {/if}
+                  {#if config.key_note}
+                    <span class="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded">{config.key_note}</span>
+                  {/if}
+                  {#if config.endpoint_group}
+                    <span class="text-xs text-purple-500 bg-purple-50 px-2 py-0.5 rounded">{config.endpoint_group}</span>
                   {/if}
                 </div>
-                <div class="flex items-center gap-1 flex-shrink-0">
+
+                <div class="flex items-center gap-2 text-sm">
+                  <span class="text-gray-400 w-10 flex-shrink-0 text-xs">密钥</span>
+                  <code class="text-gray-700 bg-gray-50 px-2 py-0.5 rounded text-xs font-mono truncate">
+                    {showApiKeyMap[config.id ?? 0] ? config.api_key : maskKey(config.api_key)}
+                  </code>
                   <button
-                    onclick={() => copyToClipboard(endpoint, '端点')}
-                    class="text-gray-400 hover:text-blue-600 p-1 rounded transition-colors"
-                    title="复制端点"
+                    onclick={() => toggleKeyVisibility(config.id ?? 0)}
+                    class="text-gray-400 hover:text-gray-600 flex-shrink-0 transition-colors"
+                    title={showApiKeyMap[config.id ?? 0] ? '隐藏密钥' : '显示密钥'}
                   >
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
+                    {#if showApiKeyMap[config.id ?? 0]}
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                    {:else}
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    {/if}
                   </button>
                   <button
-                    onclick={() => addKeyToEndpoint(cfgs[0])}
-                    class="text-gray-400 hover:text-emerald-600 p-1 rounded transition-colors"
-                    title="为此站点添加密钥"
+                    onclick={() => copyToClipboard(config.api_key, '密钥')}
+                    class="text-gray-400 hover:text-blue-600 flex-shrink-0 transition-colors"
+                    title="复制密钥"
                   >
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                   </button>
-                  <span class="text-xs text-gray-400 ml-1">{cfgs.length} 个密钥</span>
                 </div>
-              </div>
-              <div class="divide-y divide-gray-100">
-                {#each cfgs as config (config.id)}
-                  {@const history = checkHistoryMap[config.id ?? 0]}
-                  <div class="px-4 py-3 hover:bg-gray-50/50 transition-colors">
-                    <div class="flex items-start justify-between gap-4">
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-                          {#if config.group}
-                            <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{config.group}</span>
-                          {/if}
-                          {#if config.key_note}
-                            <span class="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded">{config.key_note}</span>
-                          {/if}
-                        </div>
 
-                        <div class="flex items-center gap-2 text-sm">
-                          <span class="text-gray-400 w-10 flex-shrink-0 text-xs">密钥</span>
-                          <code class="text-gray-700 bg-gray-50 px-2 py-0.5 rounded text-xs font-mono truncate">
-                            {showApiKeyMap[config.id ?? 0] ? config.api_key : maskKey(config.api_key)}
-                          </code>
-                          <button
-                            onclick={() => toggleKeyVisibility(config.id ?? 0)}
-                            class="text-gray-400 hover:text-gray-600 flex-shrink-0 transition-colors"
-                            title={showApiKeyMap[config.id ?? 0] ? '隐藏密钥' : '显示密钥'}
-                          >
-                            {#if showApiKeyMap[config.id ?? 0]}
-                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                              </svg>
-                            {:else}
-                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                            {/if}
-                          </button>
-                          <button
-                            onclick={() => copyToClipboard(config.api_key, '密钥')}
-                            class="text-gray-400 hover:text-blue-600 flex-shrink-0 transition-colors"
-                            title="复制密钥"
-                          >
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                          </button>
-                        </div>
+                {#if history}
+                  <button
+                    onclick={() => viewCheckHistory(config)}
+                    class="flex items-center gap-2 text-xs mt-1.5 group cursor-pointer"
+                    title="点击查看检测详情"
+                  >
+                    <span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-medium group-hover:bg-emerald-100 transition-colors">
+                      {history.available_count}/{history.total_count} 可用
+                    </span>
+                    <span class="text-gray-400 group-hover:text-gray-600 transition-colors">检测于 {formatDateTime(history.created_at)}</span>
+                    <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                  </button>
+                {/if}
 
-                        {#if history}
-                          <button
-                            onclick={() => viewCheckHistory(config)}
-                            class="flex items-center gap-2 text-xs mt-1.5 group cursor-pointer"
-                            title="点击查看检测详情"
-                          >
-                            <span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-medium group-hover:bg-emerald-100 transition-colors">
-                              {history.available_count}/{history.total_count} 可用
-                            </span>
-                            <span class="text-gray-400 group-hover:text-gray-600 transition-colors">检测于 {formatDateTime(history.created_at)}</span>
-                            <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                            </svg>
-                          </button>
-                        {/if}
-
-                        {#if config.created_at && !history}
-                          <div class="flex items-center gap-2 text-xs text-gray-400 mt-1">
-                            <span>添加于 {formatDate(config.created_at)}</span>
-                          </div>
-                        {/if}
-                      </div>
-
-                      <div class="flex items-center gap-1 flex-shrink-0">
-                        <button
-                          onclick={() => startModelCheck(config)}
-                          disabled={checkRunning}
-                          class="text-gray-400 hover:text-emerald-600 p-1.5 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-40"
-                          title="检测模型可用性"
-                        >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </button>
-                        {#if history}
-                          <button
-                            onclick={() => deleteCheckHistory(config.id!)}
-                            class="text-gray-400 hover:text-amber-600 p-1.5 rounded-lg hover:bg-amber-50 transition-colors"
-                            title="删除检测记录"
-                          >
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        {/if}
-                        <button
-                          onclick={() => openEditModal(config)}
-                          class="text-gray-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
-                          title="编辑"
-                        >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button
-                          onclick={() => deleteConfig(config.id!)}
-                          class="text-gray-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                          title="删除"
-                        >
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
+                {#if config.created_at && !history}
+                  <div class="flex items-center gap-2 text-xs text-gray-400 mt-1">
+                    <span>添加于 {formatDate(config.created_at)}</span>
                   </div>
-                {/each}
+                {/if}
+              </div>
+
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <button
+                  onclick={() => startModelCheck(config)}
+                  disabled={checkRunning}
+                  class="text-gray-400 hover:text-emerald-600 p-1.5 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-40"
+                  title="检测模型可用性"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </button>
+                {#if history}
+                  <button
+                    onclick={() => deleteCheckHistory(config.id!)}
+                    class="text-gray-400 hover:text-amber-600 p-1.5 rounded-lg hover:bg-amber-50 transition-colors"
+                    title="删除检测记录"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                {/if}
+                <button
+                  onclick={() => openEditModal(config)}
+                  class="text-gray-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                  title="编辑"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                </button>
+                <button
+                  onclick={() => deleteConfig(config.id!)}
+                  class="text-gray-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                  title="删除"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
               </div>
             </div>
+          </div>
+        </div>
+      {/each}
+    </div>
+
+    {#if total > pageSize}
+      <div class="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+        <div class="flex items-center gap-3 text-sm text-gray-500">
+          <span>第 {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, total)} 条，共 {total} 条</span>
+          <select
+            value={pageSize}
+            onchange={(e) => onPageSizeChange(Number((e.target as HTMLSelectElement).value))}
+            class="border border-gray-300 rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            {#each PAGE_SIZE_OPTIONS as opt}
+              <option value={opt}>{opt} 条/页</option>
+            {/each}
+          </select>
+        </div>
+        <div class="flex items-center gap-1">
+          <button
+            onclick={() => goToPage(currentPage - 1)}
+            disabled={currentPage <= 1}
+            class="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >上一页</button>
+          {#each Array.from({ length: Math.ceil(total / pageSize) }, (_, i) => i + 1) as page}
+            {#if page === currentPage || Math.abs(page - currentPage) <= 1 || page === 1 || page === Math.ceil(total / pageSize)}
+              <button
+                onclick={() => goToPage(page)}
+                class="px-3 py-1.5 text-sm rounded-md transition-colors {page === currentPage ? 'bg-blue-600 text-white' : 'border border-gray-300 hover:bg-gray-50'}"
+              >{page}</button>
+            {:else if page === currentPage - 2 || page === currentPage + 2}
+              <span class="px-1 text-gray-400">...</span>
+            {/if}
           {/each}
+          <button
+            onclick={() => goToPage(currentPage + 1)}
+            disabled={currentPage >= Math.ceil(total / pageSize)}
+            class="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >下一页</button>
         </div>
       </div>
-    {/each}
+    {/if}
   {/if}
 </div>
 

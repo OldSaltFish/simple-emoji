@@ -36,7 +36,7 @@
     </div>
   </div>
 {:else if isAdmin}
-  <div class="bg-gray-50 flex min-h-[calc(100vh-4rem)]">
+  <div class="bg-gray-50 flex h-[calc(100vh-4rem)]">
     <AdminFeatSidebar bind:activeTab />
 
     <div class="flex-1 p-6 overflow-y-auto">

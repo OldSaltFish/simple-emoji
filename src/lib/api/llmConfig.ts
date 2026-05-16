@@ -11,6 +11,15 @@ export interface LlmConfig {
   endpoint_group: string;
   created_at: string;
   updated_at: string;
+  check_history?: {
+    id?: number;
+    llm_config: number;
+    available_models: string[];
+    unavailable_models: { model: string; reason: string }[];
+    total_count: number;
+    available_count: number;
+    created_at: string;
+  };
 }
 
 export interface LlmConfigListResponse {
@@ -21,11 +30,23 @@ export interface LlmConfigListResponse {
 export type LlmConfigCreate = Omit<LlmConfig, 'id' | 'created_at' | 'updated_at'>;
 export type LlmConfigUpdate = Partial<LlmConfigCreate>;
 
+export interface LlmConfigGroups {
+  groups: string[];
+  endpoint_groups: string[];
+}
+
 export class LlmConfigApi {
   private base = '/config/llm-config';
 
-  async list(page = 1, pageSize = 50): Promise<LlmConfigListResponse> {
-    return apiClient.get(`${this.base}/list-llm-config`, { page, page_size: pageSize });
+  async list(
+    page = 1,
+    pageSize = 20,
+    filters?: { group?: string; endpoint_group?: string },
+  ): Promise<LlmConfigListResponse> {
+    const params: Record<string, number | string> = { page, page_size: pageSize };
+    if (filters?.group !== undefined) params.group = filters.group;
+    if (filters?.endpoint_group !== undefined) params.endpoint_group = filters.endpoint_group;
+    return apiClient.get(`${this.base}/list-llm-config`, params);
   }
 
   async create(config: LlmConfigCreate): Promise<LlmConfig> {
@@ -38,6 +59,10 @@ export class LlmConfigApi {
 
   async delete(id: number): Promise<void> {
     return apiClient.delete(`${this.base}/delete-llm-config`, undefined, { params: { id } });
+  }
+
+  async getGroups(): Promise<LlmConfigGroups> {
+    return apiClient.get(`${this.base}/groups`);
   }
 }
 
