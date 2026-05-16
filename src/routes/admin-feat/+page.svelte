@@ -25,7 +25,7 @@
 </script>
 
 <svelte:head>
-  <title>管理工具 - 表情包网站</title>
+  <title>管理工具 - 魂祈梦</title>
 </svelte:head>
 
 {#if !isLoaded}

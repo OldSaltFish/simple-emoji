@@ -31,7 +31,7 @@
 </script>
 
 <svelte:head>
-  <title>管理后台 - 表情包网站</title>
+  <title>管理后台 - 魂祈梦</title>
 </svelte:head>
 
 {#if !isLoaded}

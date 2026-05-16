@@ -41,7 +41,7 @@
   <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex justify-between items-center h-16">
       <div class="flex items-center gap-8">
-        <h1 class="text-xl font-bold text-gray-900">表情包网站</h1>
+        <h1 class="text-xl font-bold text-gray-900">魂祈梦</h1>
         <nav class="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
           <a
             href="/"

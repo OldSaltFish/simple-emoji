@@ -303,7 +303,7 @@
 </script>
 
 <svelte:head>
-  <title>代码片段 - 表情包网站</title>
+  <title>代码片段 - 魂祈梦</title>
 </svelte:head>
 
 <div class="bg-gray-50 min-h-[calc(100vh-4rem)]">

@@ -206,7 +206,7 @@
 </script>
 
 <svelte:head>
-  <title>最近 - 表情包网站</title>
+  <title>最近 - 魂祈梦</title>
   <meta name="description" content="查看最近的表情包" />
 </svelte:head>
 
