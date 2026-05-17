@@ -67,6 +67,14 @@
               ? 'bg-white text-blue-600 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'}">代码片段</a
           >
+          <a
+            href="/chat"
+            class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
+              '/chat',
+            )
+              ? 'bg-white text-blue-600 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'}">模型聊天</a
+          >
           {#if isAdmin}
             <a
               href="/admin-feat"

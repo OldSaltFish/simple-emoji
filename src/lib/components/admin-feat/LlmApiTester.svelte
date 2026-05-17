@@ -4,6 +4,8 @@
   import { customConfirm } from '$lib/stores/dialogStore';
   import { llmConfigApi, type LlmConfig } from '$lib/api/llmConfig';
   import { llmModelCheckApi, type LlmModelCheck } from '$lib/api/llmModelCheck';
+  import { llmChatApi, getCustomModels } from '$lib/api/llmChat';
+  import type { ChatMessage, ChatModelSource } from '$lib/api/llmChat';
 
   type ApiType = 'openai' | 'gemini' | 'claude';
 
@@ -32,6 +34,7 @@
 
   let filterGroup = $state('');
   let filterEndpointGroup = $state('');
+  let showDisabled = $state(false);
   let availableGroups = $state<string[]>([]);
   let availableEndpointGroups = $state<string[]>([]);
 
@@ -61,14 +64,34 @@
   let viewingHistory = $state<LlmModelCheck | null>(null);
   let viewingConfig = $state<LlmConfig | null>(null);
 
+  interface ChatMsg { role: 'user' | 'assistant'; content: string; loading?: boolean; error?: string; }
+  let showChatModal = $state(false);
+  let chatSources = $state<ChatModelSource[]>([]);
+  let chatConfigId = $state<number | null>(null);
+  let chatModel = $state('');
+  let chatShowUnavailable = $state(false);
+  let chatShowDisabled = $state(false);
+  let chatMessages = $state<ChatMsg[]>([]);
+  let chatInput = $state('');
+  let chatSending = $state(false);
+  let chatEndEl: HTMLDivElement | undefined = $state();
+  let chatConfigPickerOpen = $state(false);
+  let chatModelPickerOpen = $state(false);
+  let chatApiType = $state<'openai' | 'claude'>('openai');
+  const CHAT_API_TYPES = [
+    { value: 'openai', label: 'OpenAI' },
+    { value: 'claude', label: 'Claude/Anthropic' },
+  ] as const;
+
   async function loadConfigs() {
     loading = true;
     try {
-      const filters: { group?: string; endpoint_group?: string } = {};
+      const filters: { group?: string; endpoint_group?: string; disabled?: boolean } = {};
       if (filterGroup && filterGroup !== '__none__') filters.group = filterGroup;
       else if (filterGroup === '__none__') filters.group = '';
       if (filterEndpointGroup && filterEndpointGroup !== '__none__') filters.endpoint_group = filterEndpointGroup;
       else if (filterEndpointGroup === '__none__') filters.endpoint_group = '';
+      if (!showDisabled) filters.disabled = false;
       const res = await llmConfigApi.list(currentPage, pageSize, filters);
       configs = res.list || [];
       total = res.total || 0;
@@ -397,6 +420,83 @@
     showHistoryModal = true;
   }
 
+  let chatCurrentSource = $derived<ChatModelSource | undefined>(
+    chatSources.find((s) => s.config_id === chatConfigId)
+  );
+  let chatDisplaySources = $derived(
+    chatShowDisabled ? chatSources : chatSources.filter(s => !s.disabled)
+  );
+  let chatModelOptions = $derived<string[]>(
+    chatCurrentSource
+      ? (() => {
+          const detected = chatShowUnavailable
+            ? [...chatCurrentSource.available_models, ...chatCurrentSource.unavailable_models]
+            : [...chatCurrentSource.available_models];
+          const custom = getCustomModels(chatConfigId!);
+          const merged = [...new Set([...detected, ...custom])];
+          return merged.sort();
+        })()
+      : []
+  );
+
+  async function openChatModal(config: LlmConfig) {
+    showChatModal = true;
+    chatConfigPickerOpen = false;
+    chatModelPickerOpen = false;
+    const rawType = (config.api_type || 'openai').toLowerCase();
+    chatApiType = (rawType === 'claude' || rawType === 'anthropic') ? 'claude' : 'openai';
+    try {
+      chatSources = await llmChatApi.getAvailableModels();
+      chatConfigId = config.id!;
+      chatShowUnavailable = false;
+      chatMessages = [];
+      autoSelectChatModel();
+    } catch {}
+  }
+
+  function autoSelectChatModel() {
+    const opts = chatModelOptions;
+    if (opts.length > 0 && !opts.includes(chatModel)) chatModel = opts[0];
+  }
+
+  async function sendChatMessage() {
+    const text = chatInput.trim();
+    if (!text || chatSending || !chatConfigId || !chatModel) return;
+    chatMessages = [...chatMessages, { role: 'user', content: text }];
+    chatMessages = [...chatMessages, { role: 'assistant', content: '', loading: true }];
+    chatInput = '';
+    chatSending = true;
+
+    const history: ChatMessage[] = chatMessages
+      .filter(m => m.role === 'user' || (m.role === 'assistant' && m.content))
+      .map(m => ({ role: m.role, content: m.content }));
+
+    try {
+      for await (const chunk of llmChatApi.streamChat(chatConfigId!, chatModel, history, chatSources, chatApiType)) {
+        const parsed = JSON.parse(chunk);
+        const delta = parsed.choices?.[0]?.delta?.content || '';
+        if (delta) {
+          const msgs = [...chatMessages];
+          const last = msgs[msgs.length - 1];
+          if (last && last.role === 'assistant') { last.content += delta; last.loading = false; }
+          chatMessages = msgs;
+        }
+      }
+      const msgs = [...chatMessages];
+      const last = msgs[msgs.length - 1];
+      if (last) last.loading = false;
+      chatMessages = msgs;
+    } catch (err: any) {
+      const msgs = [...chatMessages];
+      const last = msgs[msgs.length - 1];
+      if (last) { last.error = err.message || '发送失败'; last.loading = false; }
+      chatMessages = msgs;
+    } finally {
+      chatSending = false;
+      requestAnimationFrame(() => chatEndEl?.scrollIntoView({ behavior: 'smooth' }));
+    }
+  }
+
   async function deleteCheckHistory(configId: number) {
     if (!(await customConfirm('确定要删除此检测记录吗？'))) return;
     try {
@@ -406,6 +506,17 @@
       if (idx !== -1) configs[idx].check_history = undefined;
     } catch (err: any) {
       showMessage('删除失败: ' + (err.message || '未知错误'), 'error');
+    }
+  }
+
+  async function toggleDisabled(configId: number) {
+    try {
+      const updated = await llmConfigApi.toggleDisabled(configId);
+      const idx = configs.findIndex(c => c.id === configId);
+      if (idx !== -1) configs[idx] = updated;
+      showMessage(updated.disabled ? '已禁用' : '已启用', 'success');
+    } catch (err: any) {
+      showMessage('操作失败: ' + (err.message || '未知错误'), 'error');
     }
   }
 </script>
@@ -466,18 +577,25 @@
           class="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
         >清除筛选</button>
       {/if}
+      <label class="flex items-center gap-1.5 px-2 py-1 text-sm text-gray-500 cursor-pointer select-none self-center">
+        <input type="checkbox" bind:checked={showDisabled} onchange={onFilterChange} class="rounded border-gray-300" />
+        <span>显示已禁用</span>
+      </label>
       <span class="ml-auto text-sm text-gray-400 self-center">共 {total} 条</span>
     </div>
 
     <div class="space-y-3">
       {#each configs as config (config.id)}
         {@const history = config.check_history}
-        <div class="border border-gray-200 rounded-xl overflow-hidden hover:border-gray-300 transition-colors">
+        <div class="border border-gray-200 rounded-xl overflow-hidden hover:border-gray-300 transition-colors {config.disabled ? 'opacity-60' : ''}">
           <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between border-b border-gray-200">
             <div class="flex items-center gap-2 min-w-0">
               <span class="text-xs font-semibold px-2 py-0.5 rounded {apiTypeColors[config.api_type]}">
                 {apiTypeLabels[config.api_type]}
               </span>
+              {#if config.disabled}
+                <span class="text-xs font-semibold px-2 py-0.5 rounded bg-red-100 text-red-600">已禁用</span>
+              {/if}
               <a
                 href={getEndpointUrl(config.endpoint)}
                 target="_blank"
@@ -569,12 +687,30 @@
 
               <div class="flex items-center gap-1 flex-shrink-0">
                 <button
+                  onclick={() => toggleDisabled(config.id!)}
+                  class="{config.disabled ? 'text-red-400 hover:text-red-600 hover:bg-red-50' : 'text-gray-400 hover:text-orange-600 hover:bg-orange-50'} p-1.5 rounded-lg transition-colors"
+                  title={config.disabled ? '启用' : '禁用'}
+                >
+                  {#if config.disabled}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                  {:else}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                  {/if}
+                </button>
+                <button
                   onclick={() => startModelCheck(config)}
                   disabled={checkRunning}
                   class="text-gray-400 hover:text-emerald-600 p-1.5 rounded-lg hover:bg-emerald-50 transition-colors disabled:opacity-40"
                   title="检测模型可用性"
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </button>
+                <button
+                  onclick={() => openChatModal(config)}
+                  class="text-gray-400 hover:text-purple-600 p-1.5 rounded-lg hover:bg-purple-50 transition-colors"
+                  title="与模型对话"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 </button>
                 {#if history}
                   <button
@@ -756,6 +892,198 @@
   </div>
 {/if}
 
+{#if showChatModal}
+  <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => { if (e.target === e.currentTarget) { showChatModal = false; chatConfigPickerOpen = false; chatModelPickerOpen = false; } }} onkeydown={(e) => { if (e.key === 'Escape') { showChatModal = false; chatConfigPickerOpen = false; chatModelPickerOpen = false; } }}>
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl flex flex-col" style="max-height: 85vh;">
+      <div class="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+        <h3 class="text-base font-bold text-gray-900">模型对话</h3>
+        <button onclick={() => { showChatModal = false; chatConfigPickerOpen = false; chatModelPickerOpen = false; }} class="text-gray-400 hover:text-gray-600 transition-colors" aria-label="关闭">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+
+      <div class="flex" style="height: calc(85vh - 110px);">
+        <!-- 左侧面板 -->
+        <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+        <div class="w-56 border-r border-gray-200 flex flex-col bg-gray-50/50" onclick={() => { chatConfigPickerOpen = false; chatModelPickerOpen = false; }} role="presentation">
+          <!-- 端点选择（自定义下拉） -->
+          <div class="p-3 space-y-2 border-b border-gray-200">
+            {#if !chatConfigPickerOpen}
+              <button
+                onclick={(e) => { e.stopPropagation(); chatConfigPickerOpen = true; }}
+                class="w-full text-left px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg bg-white hover:border-gray-400 transition-colors flex items-center justify-between"
+              >
+                <span class="truncate font-medium {chatCurrentSource ? 'text-gray-800' : 'text-gray-400'}">{chatCurrentSource ? chatCurrentSource.endpoint : '选择端点'}</span>
+                <svg class="w-3 h-3 text-gray-400 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+            {:else}
+              <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+              <div class="relative" onclick={(e) => e.stopPropagation()} role="presentation">
+                <div class="w-full px-2.5 py-1.5 text-xs border border-blue-400 rounded-lg bg-white shadow-sm flex items-center justify-between">
+                  <span class="truncate font-medium text-gray-800">{chatCurrentSource?.endpoint || '选择端点'}</span>
+                  <svg class="w-3 h-3 text-blue-500 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                </div>
+                <div class="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto z-20">
+                  {#each chatDisplaySources as src}
+                    <button
+                      onclick={() => { chatConfigId = src.config_id; chatModel = ''; autoSelectChatModel(); chatConfigPickerOpen = false; }}
+                      class="w-full text-left px-3 py-1.5 text-xs hover:bg-blue-50 transition-colors {src.config_id === chatConfigId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}"
+                    >
+                      <div class="truncate font-medium">{src.endpoint}</div>
+                      <div class="text-[10px] text-gray-400 mt-0.3">{src.api_type} · {src.available_models.length > 0 ? src.available_models.length + ' 可用' : '未检测'}</div>
+                    </button>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+
+            <!-- 模型名称（手动输入） -->
+            <input
+              bind:value={chatModel}
+              type="text"
+              placeholder="输入模型名称"
+              onclick={(e) => e.stopPropagation()}
+              class="w-full px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg bg-white font-mono hover:border-gray-400 focus:outline-none focus:border-gray-400 transition-colors"
+            />
+
+            {#if chatModelOptions.length > 0}
+              <!-- 快捷选择 -->
+              {#if !chatModelPickerOpen}
+                <button
+                  onclick={(e) => { e.stopPropagation(); chatModelPickerOpen = true; }}
+                  class="w-full text-left px-2 py-1 text-[11px] text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-md transition-colors flex items-center gap-1"
+                >
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  快速选择 ({chatModelOptions.length} 个)
+                </button>
+              {:else}
+                <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+                <div class="relative" onclick={(e) => e.stopPropagation()} role="presentation">
+                  <div class="w-full px-2 py-1 text-[11px] border border-blue-300 rounded-md bg-blue-50/50 text-blue-700 flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                    选择模型
+                  </div>
+                  <div class="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto z-20">
+                    {#each chatModelOptions as m}
+                      <button
+                        onclick={() => { chatModel = m; chatModelPickerOpen = false; }}
+                        class="w-full text-left px-3 py-1.5 text-xs hover:bg-purple-50 transition-colors font-mono {m === chatModel ? 'bg-purple-50 text-purple-700 font-semibold' : 'text-gray-700'}"
+                      >{m}</button>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+            {/if}
+
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+            <label class="flex items-center gap-1.5 cursor-pointer select-none text-xs text-gray-500" onclick={(e) => e.stopPropagation()}>
+              <input type="checkbox" bind:checked={chatShowUnavailable} onchange={autoSelectChatModel} class="rounded border-gray-300 w-3 h-3" />
+              显示未通过测试的模型
+            </label>
+            <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+            <label class="flex items-center gap-1.5 cursor-pointer select-none text-xs text-gray-500" onclick={(e) => e.stopPropagation()}>
+              <input type="checkbox" bind:checked={chatShowDisabled} class="rounded border-gray-300 w-3 h-3" />
+              显示已禁用密钥
+            </label>
+
+            {#if chatCurrentSource}
+              <div class="p-2 bg-white rounded-md text-[10px] space-y-1 border border-gray-100">
+                <div class="flex items-center justify-between">
+                  <span class="text-gray-500">请求格式</span>
+                  <select
+                    bind:value={chatApiType}
+                    onclick={(e) => e.stopPropagation()}
+                    class="text-[10px] font-medium border border-gray-200 rounded px-1 py-0.5 bg-white hover:border-gray-300 focus:outline-none"
+                  >
+                    {#each CHAT_API_TYPES as t}
+                      <option value={t.value}>{t.label}</option>
+                    {/each}
+                  </select>
+                </div>
+                <div class="truncate"><span class="text-gray-500">分组:</span> {chatCurrentSource.endpoint_group || '-'}</div>
+              </div>
+            {/if}
+          </div>
+
+          <!-- 快捷端点列表 -->
+          <div class="flex-1 overflow-y-auto p-2 space-y-0.5">
+            {#each chatSources as src}
+              <button
+                onclick={() => { chatConfigId = src.config_id; chatModel = ''; autoSelectChatModel(); }}
+                class="w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors {src.config_id === chatConfigId
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'hover:bg-gray-100/80 text-gray-600'}"
+              >{src.endpoint}</button>
+            {/each}
+          </div>
+        </div>
+
+        <!-- 右侧对话区 -->
+        <div class="flex-1 flex flex-col min-w-0">
+          <div class="flex-1 overflow-y-auto p-4 space-y-3">
+            {#if chatMessages.length === 0}
+              <div class="flex-1 flex flex-col items-center justify-center h-full text-gray-400">
+                <svg class="w-10 h-10 mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                <p class="text-sm">选择模型后开始对话</p>
+              </div>
+            {:else}
+              {#each chatMessages as msg}
+                <div class="flex gap-2 {msg.role === 'user' ? 'justify-end' : 'justify-start'}">
+                  <div class="max-w-[80%] rounded-2xl px-3 py-2 text-sm {msg.role === 'user'
+                    ? 'bg-blue-600 text-white rounded-br-sm'
+                    : 'bg-gray-100 border border-gray-200 text-gray-800 rounded-bl-sm shadow-sm'}">
+                    {#if msg.role === 'assistant' && msg.loading && !msg.content}
+                      <div class="flex gap-1 py-1">
+                        <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+                        <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+                        <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+                      </div>
+                    {:else if msg.error}
+                      <p class="text-red-500">{msg.error}</p>
+                    {:else}
+                      <div class="whitespace-pre-wrap break-words leading-relaxed">{msg.content}</div>
+                      {#if msg.role === 'assistant' && msg.loading}
+                        <span class="inline-block w-1 h-3.5 bg-blue-500 ml-0.5 animate-pulse align-middle"></span>
+                      {/if}
+                    {/if}
+                  </div>
+                </div>
+              {/each}
+              <div bind:this={chatEndEl}></div>
+            {/if}
+          </div>
+
+          <div class="border-t border-gray-200 p-3 flex gap-2 items-end">
+            {#if chatModel}
+              <div class="shrink-0 px-2 py-1.5 bg-purple-50 text-purple-700 text-[11px] font-mono rounded-lg max-w-[160px] truncate" title={chatModel}>{chatModel}</div>
+            {/if}
+            <textarea
+              bind:value={chatInput}
+              onkeydown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); } }}
+              placeholder="{chatModel ? 'Enter 发送，Shift+Enter 换行' : '请先选择模型'}"
+              rows="1"
+              disabled={chatSending || !chatConfigId || !chatModel}
+              class="flex-1 resize-none px-3 py-2 border border-gray-300 rounded-lg text-sm hover:border-gray-400 focus:border-gray-400 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400 transition-colors"
+              style="max-height: 80px; min-height: 36px;"
+            ></textarea>
+            <button
+              onclick={sendChatMessage}
+              disabled={chatSending || !chatInput.trim() || !chatConfigId || !chatModel}
+              class="shrink-0 px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 disabled:opacity-40 transition-colors"
+            >
+              {#if chatSending}
+                <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+              {:else}
+                发送
+              {/if}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
 {#if showCheckModal && !checkMinimized}
   <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
     <div class="bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl flex flex-col" style="max-height: 80vh;">
@@ -803,7 +1131,7 @@
         bind:this={consoleEl}
         class="flex-1 overflow-y-auto p-4 font-mono text-sm leading-relaxed"
       >
-        {#each checkLogs as log, i}
+        {#each checkLogs as log}
           <div
             class="whitespace-pre-wrap break-all
               {log.type === 'ok' ? 'text-emerald-400' : ''}

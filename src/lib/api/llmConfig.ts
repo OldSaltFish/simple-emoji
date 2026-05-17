@@ -9,6 +9,7 @@ export interface LlmConfig {
   key_note: string;
   endpoint_note: string;
   endpoint_group: string;
+  disabled?: boolean;
   created_at: string;
   updated_at: string;
   check_history?: {
@@ -41,11 +42,12 @@ export class LlmConfigApi {
   async list(
     page = 1,
     pageSize = 20,
-    filters?: { group?: string; endpoint_group?: string },
+    filters?: { group?: string; endpoint_group?: string; disabled?: boolean },
   ): Promise<LlmConfigListResponse> {
-    const params: Record<string, number | string> = { page, page_size: pageSize };
+    const params: Record<string, string | number> = { page, page_size: pageSize };
     if (filters?.group !== undefined) params.group = filters.group;
     if (filters?.endpoint_group !== undefined) params.endpoint_group = filters.endpoint_group;
+    if (filters?.disabled !== undefined) params.disabled = Number(filters.disabled);
     return apiClient.get(`${this.base}/list-llm-config`, params);
   }
 
@@ -59,6 +61,10 @@ export class LlmConfigApi {
 
   async delete(id: number): Promise<void> {
     return apiClient.delete(`${this.base}/delete-llm-config`, undefined, { params: { id } });
+  }
+
+  async toggleDisabled(id: number): Promise<LlmConfig> {
+    return apiClient.post(`${this.base}/toggle-llm-config/${id}`, undefined);
   }
 
   async getGroups(): Promise<LlmConfigGroups> {
