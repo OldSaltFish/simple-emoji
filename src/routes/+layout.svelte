@@ -75,6 +75,14 @@
               ? 'bg-white text-blue-600 shadow-sm'
               : 'text-gray-600 hover:text-gray-900'}">模型聊天</a
           >
+          <a
+            href="/scripts"
+            class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
+              '/scripts',
+            )
+              ? 'bg-white text-blue-600 shadow-sm'
+              : 'text-gray-600 hover:text-gray-900'}">脚本分享</a
+          >
           {#if isAdmin}
             <a
               href="/admin-feat"
