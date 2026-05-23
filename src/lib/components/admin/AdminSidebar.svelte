@@ -6,6 +6,7 @@
     { id: 'categories', name: '图集管理', icon: '📁' },
     { id: 'tags', name: '图片标签', icon: '🏷️' },
     { id: 'snippet-tags', name: '代码标签', icon: '🔖' },
+    { id: 'check-in', name: '签到管理', icon: '✅' },
     { id: 'images', name: '图片管理', icon: '🖼️' },
     { id: 'settings', name: '系统设置', icon: '⚙️' }
   ];

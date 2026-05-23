@@ -6,6 +6,7 @@
   import CategoryManagement from '$lib/components/admin/CategoryManagement.svelte';
   import TagManagement from '$lib/components/admin/TagManagement.svelte';
   import SnippetTagManagement from '$lib/components/admin/SnippetTagManagement.svelte';
+  import CheckInManagement from '$lib/components/admin/CheckInManagement.svelte';
 
   let isAdmin = $state(false);
   let activeTab = $state('interfaces');
@@ -57,6 +58,8 @@
         <TagManagement />
       {:else if activeTab === 'snippet-tags'}
         <SnippetTagManagement />
+      {:else if activeTab === 'check-in'}
+        <CheckInManagement />
       {:else if activeTab === 'images'}
         <div class="bg-white rounded-lg shadow p-6">
           <h2 class="text-2xl font-bold mb-4">图片管理</h2>

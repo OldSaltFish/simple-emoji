@@ -5,6 +5,7 @@ export { imagesApi } from './images';
 export { codeSnippetsApi } from './codeSnippets';
 export { snippetTagsApi } from './snippetTags';
 export { llmConfigApi } from './llmConfig';
+export { checkInApi } from './checkIn';
 
 export type {
   CreateImageHostRequest, 
