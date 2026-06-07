@@ -23,23 +23,9 @@ export interface Tag {
 export const TAG_KIND_OPTIONS = ['人物', '情绪', '颜色', '风格', '作品', '其他'] as const;
 export type TagKind = string;
 
-export interface SnippetTag {
-  name: string;
-  kind?: string;
-}
-
-export const SNIPPET_TAG_KIND_OPTIONS = ['语言', '框架', '工具', '库', '其他'] as const;
-
-export interface ImageTag {
-  id: number;
-  image_id: number;
-  tag_id: number;
-}
-
 export interface FilterOptions {
   category?: string;
   tags?: string[];
-  framework?: string;
   search?: string;
   sortBy?: 'created_at' | 'name';
   sortOrder?: 'asc' | 'desc';
@@ -65,14 +51,3 @@ export type ImageHostDto = Omit<ImageHost, 'header_params' | 'form_params'> & {
   header_params: string;
   form_params: string;
 };
-
-export interface CodeSnippet {
-  id: number;
-  title: string;
-  description?: string;
-  url: string;
-  cover_url?: string;
-  tags?: SnippetTag[];
-  created_at: string;
-  updated_at?: string;
-}

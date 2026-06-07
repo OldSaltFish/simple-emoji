@@ -60,14 +60,6 @@
               : 'text-gray-600 hover:text-gray-900'}">最近</a
           >
           <a
-            href="/snippets"
-            class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
-              '/snippets',
-            )
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'}">代码片段</a
-          >
-          <a
             href="/chat"
             class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
               '/chat',
@@ -138,12 +130,12 @@
               : 'text-gray-600'}">最近</a
           >
           <a
-            href="/snippets"
+            href="/scripts"
             class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
-              '/snippets',
+              '/scripts',
             )
               ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600'}">代码</a
+              : 'text-gray-600'}">脚本分享</a
           >
           {#if isAdmin}
             <a

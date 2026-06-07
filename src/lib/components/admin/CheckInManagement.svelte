@@ -43,14 +43,14 @@
 
   // Sites state
   let sites = $state<Site[]>([]);
-  let sitesLoading = $state(false);
+  let sitesInitialLoading = $state(false);
   let executingSiteId = $state<string | null>(null);
   let openMenuSiteId = $state<string | null>(null);
 
   // Logs state
   let logs = $state<Log[]>([]);
   let logsTotal = $state(0);
-  let logsLoading = $state(false);
+  let logsInitialLoading = $state(false);
   let currentPage = $state(1);
   let pageSize = $state(10);
 
@@ -70,20 +70,20 @@
     await Promise.all([loadSites(), loadLogs()]);
   });
 
-  async function loadSites() {
-    sitesLoading = true;
+  async function loadSites(showLoading = true) {
+    if (showLoading) sitesInitialLoading = true;
     try {
       const data = await checkInApi.getSites();
       sites = data || [];
     } catch (error) {
       console.error('加载站点失败:', error);
     } finally {
-      sitesLoading = false;
+      if (showLoading) sitesInitialLoading = false;
     }
   }
 
-  async function loadLogs() {
-    logsLoading = true;
+  async function loadLogs(showLoading = true) {
+    if (showLoading) logsInitialLoading = true;
     try {
       const params: Record<string, string | number> = {
         page: currentPage,
@@ -100,7 +100,7 @@
     } catch (error) {
       console.error('加载日志失败:', error);
     } finally {
-      logsLoading = false;
+      if (showLoading) logsInitialLoading = false;
     }
   }
 
@@ -109,8 +109,8 @@
     openMenuSiteId = null;
     try {
       await checkInApi.executeCheckIn(siteId);
-      await loadSites();
-      await loadLogs();
+      await loadSites(false);
+      await loadLogs(false);
     } catch (error) {
       console.error('执行签到失败:', error);
     } finally {
@@ -121,10 +121,16 @@
   async function deleteLog(id: number) {
     if (await customConfirm('确定要删除这条签到记录吗？')) {
       try {
+        // 乐观移除：立即从列表中删除，避免闪烁
+        logs = logs.filter(log => log.id !== id);
+        logsTotal = Math.max(0, logsTotal - 1);
         await checkInApi.deleteLog(id);
-        await loadLogs();
+        // 静默刷新确保数据一致，不显示 loading
+        await loadLogs(false);
       } catch (error) {
         console.error('删除记录失败:', error);
+        // 失败时恢复数据
+        await loadLogs(false);
       }
     }
   }
@@ -206,7 +212,7 @@
     </div>
 
     <div class="p-6">
-      {#if sitesLoading}
+      {#if sitesInitialLoading}
         <div class="text-center py-8">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <p class="mt-2 text-gray-600">加载中...</p>
@@ -343,7 +349,7 @@
 
     <!-- Table -->
     <div class="overflow-x-auto">
-      {#if logsLoading}
+      {#if logsInitialLoading}
         <div class="text-center py-8">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <p class="mt-2 text-gray-600">加载中...</p>

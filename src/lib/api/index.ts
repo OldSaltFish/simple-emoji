@@ -2,8 +2,6 @@
 export { apiClient } from './client';
 export { imageHostsApi } from './imageHosts';
 export { imagesApi } from './images';
-export { codeSnippetsApi } from './codeSnippets';
-export { snippetTagsApi } from './snippetTags';
 export { llmConfigApi } from './llmConfig';
 export { checkInApi } from './checkIn';
 
@@ -17,7 +15,6 @@ export type {
   CreateCategoryRequest,
   CreateTagRequest
 } from './images';
-export type { CreateSnippetTagRequest } from './snippetTags';
 export type { LlmConfig, LlmConfigListResponse } from './llmConfig';
 
 // 为了向后兼容，保留原有的api对象
