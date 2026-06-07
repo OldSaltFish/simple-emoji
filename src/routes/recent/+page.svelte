@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { replaceState } from '$app/navigation';
   import FilterPanel from '$lib/components/FilterPanel.svelte';
   import ImageGrid from '$lib/components/ImageGrid.svelte';
@@ -35,8 +35,8 @@
     if (filters.sortOrder) params.set('sortOrder', filters.sortOrder);
     if (filters.tags && filters.tags.length > 0) params.set('tags', filters.tags.join(','));
 
-    const newUrl = `${$page.url.pathname}${params.toString() ? '?' + params.toString() : ''}`;
-    replaceState(newUrl, $page.state);
+    const newUrl = `${page.url.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+    replaceState(newUrl, page.state);
   }
 
   async function loadData() {

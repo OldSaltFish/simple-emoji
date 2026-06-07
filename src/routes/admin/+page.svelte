@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { replaceState } from '$app/navigation';
   import { adminStore } from '$lib/stores/admin';
   import AdminSidebar from '$lib/components/admin/AdminSidebar.svelte';
@@ -15,14 +15,14 @@
   const VALID_TABS = ['interfaces', 'categories', 'check-in'] as const;
 
   function syncUrl() {
-    const params = new URLSearchParams($page.url.searchParams);
+    const params = new URLSearchParams(page.url.searchParams);
     if (activeTab !== 'interfaces') {
       params.set('tab', activeTab);
     } else {
       params.delete('tab');
     }
-    const newUrl = `${$page.url.pathname}${params.toString() ? '?' + params.toString() : ''}`;
-    replaceState(newUrl, $page.state);
+    const newUrl = `${page.url.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+    replaceState(newUrl, page.state);
   }
 
   function handleTabChange(tabId: string) {
@@ -32,7 +32,7 @@
 
   onMount(() => {
     // 从URL读取tab状态
-    const urlTab = $page.url.searchParams.get('tab') || '';
+    const urlTab = page.url.searchParams.get('tab') || '';
     if (VALID_TABS.includes(urlTab as any)) {
       activeTab = urlTab;
     }
