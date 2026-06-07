@@ -24,7 +24,7 @@
   let currentImage = $state<Image | null>(null);
   let isAdmin = $state(false);
 
-  // 订阅管理员状�?  
+  // 订阅管理员状态
   adminStore.subscribe(state => {
     isAdmin = state.isAdmin;
   });
@@ -33,11 +33,11 @@
     return new Date(dateString).toLocaleDateString('zh-CN');
   }
 
-  // 缓存已获取的blob，避免重复下�?  
+  // 缓存已获取的blob，避免重复下载
   const imageBlobCache = new Map<string, Blob>();
 
   async function getImageBlob(image: Image): Promise<Blob> {
-    // 检查缓�?    
+    // 检查缓存
     if (imageBlobCache.has(image.url)) {
       return imageBlobCache.get(image.url)!;
     }
@@ -75,7 +75,7 @@
       return blob;
     } catch (fetchError) {
       // 直接fetch失败，尝试通过后端代理
-      console.warn('直接fetch失败，尝试使用代�?', fetchError);
+      console.warn('直接fetch失败，尝试使用代理', fetchError);
       const encodedUrl = encodeURIComponent(image.url);
       const proxyResponse = await fetch(`${config.apiBaseUrl}/bing/imgProxy?url=${encodedUrl}`);
       blob = await proxyResponse.blob();
@@ -103,7 +103,7 @@
 
   async function copyImage(image: Image) {
     try {
-      // 直接使用 fetch 获取图片 blob，避�?canvas 跨域问题
+      // 直接使用 fetch 获取图片 blob，避免 canvas 跨域问题
       let blob: Blob;
       
       // 尝试直接 fetch
@@ -112,7 +112,7 @@
         blob = await response.blob();
       } catch (fetchError) {
         // 使用后端代理
-        console.warn('直接 fetch 失败，使用代�?', fetchError);
+        console.warn('直接 fetch 失败，使用代理', fetchError);
         const encodedUrl = encodeURIComponent(image.url);
         const proxyResponse = await fetch(`${config.apiBaseUrl}/bing/imgProxy?url=${encodedUrl}`);
         blob = await proxyResponse.blob();
@@ -120,7 +120,7 @@
       
       // 尝试使用 Clipboard API 复制图片
       if (navigator.clipboard && navigator.clipboard.write) {
-        // 确保文档处于聚焦状�?        
+        // 确保文档处于聚焦状态
         if (document.hasFocus()) {
           await navigator.clipboard.write([
             new ClipboardItem({
@@ -134,13 +134,13 @@
           showMessage('图片链接已复制', 'info');
         }
       } else {
-        // 降级：复制图片链�?        
+        // 降级：复制图片链接
         await navigator.clipboard.writeText(image.url);
         showMessage('图片链接已复制（浏览器不支持直接复制图片', 'info');
       }
     } catch (error) {
       console.error('复制失败:', error);
-      // 降级：复制图片链�?      
+      // 降级：复制图片链接
       try {
         await navigator.clipboard.writeText(image.url);
         showMessage('图片链接已复制', 'info');
@@ -230,7 +230,7 @@
         showMessage(`成功打包 ${successCount} 个文件，失败 ${failCount} 个文件`);
       }
     } catch (error) {
-      console.error('生成压缩包失�?', error);
+      console.error('生成压缩包失败', error);
       showMessage('生成压缩包失败，请重试');
     }
   }
@@ -312,10 +312,10 @@
       <div class="text-gray-500">试试调整筛选条件或上传新的表情</div>
     </div>
   {:else}
-    <!-- 操作�?- 固定高度避免跳动 -->
+    <!-- 操作栏- 固定高度避免跳动 -->
     <div class="mb-4 min-h-[40px]">
       <div class="flex flex-wrap items-center gap-2">
-        <!-- 全选按�?-->
+        <!-- 全选按钮-->
         <button
           onclick={toggleAll}
           class="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -328,10 +328,10 @@
           </span>
         </button>
 
-        <!-- 批量操作 - 选中时显�?-->
+        <!-- 批量操作 - 选中时显示-->
         {#if selectedIds.size > 0}
           <span class="text-sm text-gray-700 whitespace-nowrap">
-            {selectedIds.size}�?          </span>
+            {selectedIds.size}项</span>
 
           <!-- 下载方式选择 -->
           <Select
@@ -359,7 +359,7 @@
         {#if isAdmin}
           <Select
             value=""
-            placeholder="改图�?.."
+            placeholder="改图集"
             options={categories.map(cat => ({ value: cat.name, label: cat.name }))}
             onChange={(value: string) => handleBatchUpdate(value)}
             class="w-24 sm:w-28"
@@ -389,7 +389,7 @@
           ontouchend={() => contextMenu?.handleTouchEnd()}
           ontouchmove={() => contextMenu?.handleTouchMove()}
         >
-          <!-- 选择�?-->
+          <!-- 选择框-->
           <div class="absolute top-2 left-2 z-10">
             <button
               onclick={() => toggleSelect(image.id)}
@@ -469,7 +469,7 @@
               </div>
             {/if}
 
-            <!-- 元信�?-->
+            <!-- 元信息-->
             <div class="flex justify-between items-center text-xs text-gray-500 xs:text-xs">
               <span>{formatDate(image.created_at)}</span>
             </div>
