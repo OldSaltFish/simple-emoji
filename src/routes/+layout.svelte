@@ -9,7 +9,7 @@
   import MessageProvider from "$lib/components/common/MessageProvider.svelte";
   import DialogProvider from "$lib/components/common/DialogProvider.svelte";
   import { adminStore } from "$lib/stores/admin";
-  import { page } from "$app/state";
+  import { page } from '$app/state';
   let { children } = $props();
   let isAdmin = $state(false);
 
@@ -37,143 +37,50 @@
 <AdminIndicator />
 
 <!-- 头部导航 -->
-<header class="bg-white h-64px border-b border-gray-200 sticky top-0 z-50">
+<header class="bg-white h-16 border-b border-gray-200 sticky top-0 z-50">
   <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex justify-between items-center h-16">
-      <div class="flex items-center gap-8">
-        <h1 class="text-xl font-bold text-gray-900">魂祈梦</h1>
-        <nav class="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
-          <a
-            href="/"
-            class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
-              '/',
-            )
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'}">图集</a
-          >
-          <a
-            href="/recent"
-            class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
-              '/recent',
-            )
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'}">最近</a
-          >
-          <a
-            href="/chat"
-            class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
-              '/chat',
-            )
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'}">模型聊天</a
-          >
-          <a
-            href="/scripts"
-            class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
-              '/scripts',
-            )
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'}">脚本分享</a
-          >
-          {#if isAdmin}
-            <a
-              href="/admin-feat"
-              class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
-                '/admin-feat',
-              )
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'}">管理工具</a
-            >
-            <a
-              href="/upload"
-              class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
-                '/upload',
-              )
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'}">上传</a
-            >
-            <a
-              href="/test"
-              class="px-4 py-1.5 text-sm font-medium rounded-md transition-all text-gray-400 hover:text-gray-600"
-              >test</a
-            >
-          {/if}
-          {#if isAdmin}
-            <a
-              href="/admin"
-              class="px-4 py-1.5 text-sm font-medium rounded-md transition-all {isActive(
-                '/admin',
-              )
-                ? 'bg-red-50 text-red-600 shadow-sm'
-                : 'text-red-500 hover:text-red-700'}">管理后台</a
-            >
-          {/if}
-        </nav>
-      </div>
+    <div class="flex items-center h-16 gap-4">
+      <!-- Logo -->
+      <h1 class="text-xl font-bold text-gray-900 shrink-0">魂祈梦</h1>
 
-      <!-- 移动端导航 -->
-      <nav class="md:hidden flex items-center bg-gray-100 rounded-lg p-1">
+      <!-- 游客功能导航：所有屏幕可见 -->
+      <nav class="flex items-center bg-gray-100 rounded-lg p-1 gap-0.5 flex-wrap overflow-x-auto">
+        <a
+          href="/recent"
+          class="px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap {isActive('/recent')
+            ? 'bg-white text-blue-600 shadow-sm'
+            : 'text-gray-600 hover:text-gray-900'}">表情包</a
+        >
+        <a
+          href="/scripts"
+          class="px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap {isActive('/scripts')
+            ? 'bg-white text-blue-600 shadow-sm'
+            : 'text-gray-600 hover:text-gray-900'}">脚本分享</a
+        >
+      </nav>
+
+      <!-- 管理链接：仅宽屏显示 -->
+      {#if isAdmin}
+        <nav class="hidden lg:flex items-center gap-1 ml-auto pl-4 border-l border-gray-200 shrink-0">
           <a
-            href="/"
-            class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
-              '/',
-            )
+            href="/upload"
+            class="px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap {isActive('/upload')
               ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600'}">图集</a
+              : 'text-gray-500 hover:text-gray-700'}">上传</a
           >
           <a
-            href="/recent"
-            class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
-              '/recent',
-            )
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600'}">最近</a
+            href="/test"
+            class="px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap text-gray-400 hover:text-gray-600"
+            >test</a
           >
           <a
-            href="/scripts"
-            class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
-              '/scripts',
-            )
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-600'}">脚本分享</a
+            href="/admin"
+            class="px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap {isActive('/admin')
+              ? 'bg-red-50 text-red-600 shadow-sm'
+              : 'text-red-500 hover:text-red-700'}">管理后台</a
           >
-          {#if isAdmin}
-            <a
-              href="/admin-feat"
-              class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
-                '/admin-feat',
-              )
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600'}">工具</a
-            >
-            <a
-              href="/upload"
-              class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
-                '/upload',
-              )
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600'}">上传</a
-            >
-            <a
-              href="/test"
-              class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
-                '/test',
-              )
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600'}">test</a
-            >
-          {/if}
-          {#if isAdmin}
-            <a
-              href="/admin"
-              class="px-3 py-1 text-sm font-medium rounded-md transition-all {isActive(
-                '/admin',
-              )
-                ? 'bg-red-50 text-red-600 shadow-sm'
-                : 'text-red-500'}">管理</a
-            >
-          {/if}
         </nav>
+      {/if}
     </div>
   </div>
 </header>

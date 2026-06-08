@@ -7,12 +7,14 @@
   import InterfaceManagement from '$lib/components/admin/InterfaceManagement.svelte';
   import CategoryManagement from '$lib/components/admin/CategoryManagement.svelte';
   import CheckInManagement from '$lib/components/admin/CheckInManagement.svelte';
+  import LlmApiTester from '$lib/components/admin-feat/LlmApiTester.svelte';
+  import ChatPanel from '$lib/components/admin-feat/ChatPanel.svelte';
 
   let isAdmin = $state(false);
   let activeTab = $state('interfaces');
   let isLoaded = $state(false);
 
-  const VALID_TABS = ['interfaces', 'categories', 'check-in'] as const;
+  const VALID_TABS = ['interfaces', 'categories', 'check-in', 'llm-api-test', 'chat'] as const;
 
   function syncUrl() {
     const params = new URLSearchParams(page.url.searchParams);
@@ -73,14 +75,22 @@
     <AdminSidebar {activeTab} onTabChange={handleTabChange} />
 
     <!-- 主内容区域 -->
-    <div class="flex-1 p-6 overflow-y-auto">
-      {#if activeTab === 'interfaces'}
-        <InterfaceManagement />
-      {:else if activeTab === 'categories'}
-        <CategoryManagement />
-      {:else if activeTab === 'check-in'}
-        <CheckInManagement />
-      {/if}
-    </div>
+    {#if activeTab === 'chat'}
+      <div class="flex-1 h-[calc(100vh-4rem)] overflow-hidden">
+        <ChatPanel />
+      </div>
+    {:else}
+      <div class="flex-1 p-6 overflow-y-auto">
+        {#if activeTab === 'interfaces'}
+          <InterfaceManagement />
+        {:else if activeTab === 'categories'}
+          <CategoryManagement />
+        {:else if activeTab === 'check-in'}
+          <CheckInManagement />
+        {:else if activeTab === 'llm-api-test'}
+          <LlmApiTester />
+        {/if}
+      </div>
+    {/if}
   </div>
 {/if}

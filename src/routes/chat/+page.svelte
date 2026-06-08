@@ -1,6 +1,8 @@
 <script lang="ts">
   import { llmChatApi, getCustomModels } from '$lib/api/llmChat';
   import type { ChatMessage, ChatModelSource } from '$lib/api/llmChat';
+  import { page } from '$app/state';
+  import { replaceState } from '$app/navigation';
 
   interface Message {
     role: 'user' | 'assistant';
@@ -52,6 +54,29 @@
 
   let modelDropdownOpen = $state(false);
 
+  // ===== URL 同步逻辑 =====
+  function syncUrl() {
+    const params = new URLSearchParams();
+    if (selectedConfigId) params.set('config', selectedConfigId.toString());
+    if (selectedModel) params.set('model', encodeURIComponent(selectedModel));
+    if (apiType !== 'openai') params.set('api', apiType);
+    const newUrl = `${page.url.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+    replaceState(newUrl, page.state);
+  }
+
+  function initFromUrl() {
+    const params = page.url.searchParams;
+    const configParam = params.get('config');
+    if (configParam) {
+      const id = parseInt(configParam);
+      if (!isNaN(id)) selectedConfigId = id;
+    }
+    const modelParam = params.get('model');
+    if (modelParam) selectedModel = decodeURIComponent(modelParam);
+    const apiParam = params.get('api');
+    if (apiParam === 'claude') apiType = 'claude';
+  }
+
   // --- actions ---
 
   async function loadSources() {
@@ -84,6 +109,7 @@
     const src = sources.find((s) => s.config_id === val);
     if (src) syncApiType(src);
     autoSelectModel();
+    syncUrl();
   }
 
   async function sendMessage() {
@@ -159,8 +185,15 @@
   function onModelSelect(m: string) {
     selectedModel = m;
     modelDropdownOpen = false;
+    syncUrl();
   }
 
+  function onApiTypeChange(val: string) {
+    apiType = val as 'openai' | 'claude';
+    syncUrl();
+  }
+
+  initFromUrl();
   loadSources();
 </script>
 
@@ -171,8 +204,8 @@
 <div class="h-[calc(100vh-4rem)] flex bg-gray-50" onclick={closeModelDropdown}>
   <!-- ====== 左侧面板 ====== -->
   <aside class="w-72 bg-white border-r border-gray-200 flex flex-col shrink-0">
-    <!-- 来源列表 -->
-    <div class="flex-1 overflow-y-auto">
+    <!-- 来源列表：固定最大高度 -->
+    <div class="overflow-y-auto" style="max-height: 40%;">
       <div class="p-3 border-b border-gray-100">
         <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
           可用来源 ({displaySources.length})
@@ -199,10 +232,11 @@
           {/each}
         </div>
       </div>
+    </div>
 
-      <!-- 选中后显示详情 -->
-      {#if currentSource}
-        <div class="p-3 space-y-3 border-b border-gray-100">
+    <!-- 操作区：固定底部，无需滚动 -->
+    {#if currentSource}
+      <div class="flex-1 flex flex-col min-h-0 p-3 space-y-3 overflow-y-auto">
 
           <!-- 模型选择（combobox） -->
           <div>
@@ -247,7 +281,8 @@
           <div>
             <label class="text-xs font-medium text-gray-500 mb-1 block">请求格式</label>
             <select
-              bind:value={apiType}
+              value={apiType}
+              onchange={(e) => onApiTypeChange((e.target as HTMLSelectElement).value)}
               class="w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white hover:border-gray-300 focus:outline-none focus:border-blue-300 transition-colors"
             >
               {#each API_TYPE_OPTIONS as t}
@@ -279,9 +314,8 @@
             onclick={clearMessages}
             class="w-full px-3 py-1.5 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 border border-gray-200 hover:border-red-200 rounded-lg transition-colors"
           >清空对话</button>
-        </div>
-      {/if}
-    </div>
+      </div>
+    {/if}
   </aside>
 
   <!-- ====== 右侧对话区 ====== -->

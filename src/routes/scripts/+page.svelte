@@ -10,12 +10,15 @@
   } from '$lib/api/script';
   import { adminStore } from '$lib/stores/admin';
   import { onMount } from 'svelte';
+  import { page } from '$app/state';
+  import { replaceState } from '$app/navigation';
 
   type SideTab = 'browse' | 'upload' | 'review';
 
   let isAdmin = $state(false);
   adminStore.subscribe((s) => (isAdmin = s.isAdmin));
 
+  // ===== URL 可恢复状态 =====
   let activeTab = $state<SideTab>('browse');
   let scripts = $state<ScriptItem[]>([]);
   let total = $state(0);
@@ -78,6 +81,31 @@
   function canWrapRun(langTag: string): boolean {
     const l = langTag.toLowerCase();
     return l === 'powershell' || l === 'pwsh' || l === 'bash' || l === 'shell';
+  }
+
+  // ===== URL 同步逻辑 =====
+  function syncUrl() {
+    const params = new URLSearchParams();
+    if (activeTab !== 'browse') params.set('tab', activeTab);
+    if (keyword.trim()) params.set('q', keyword.trim());
+    if (filterLang) params.set('lang', filterLang);
+    if (filterTag) params.set('tag', filterTag);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    const newUrl = `${page.url.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+    replaceState(newUrl, page.state);
+  }
+
+  function initFromUrl() {
+    const params = page.url.searchParams;
+    const tab = params.get('tab') as SideTab | null;
+    if (tab === 'browse' || tab === 'upload' || (tab === 'review' && isAdmin)) {
+      activeTab = tab;
+    }
+    keyword = params.get('q') || '';
+    filterLang = params.get('lang') || '';
+    filterTag = params.get('tag') || '';
+    const p = parseInt(params.get('page') || '1');
+    if (p >= 1) currentPage = p;
   }
 
   async function loadTags() {
@@ -177,6 +205,7 @@
       uploadLang = '';
       uploadTags = '';
       activeTab = 'browse';
+      syncUrl();
       loadScripts();
     } catch {
     } finally {
@@ -191,9 +220,17 @@
     } catch {}
   }
 
+  // 包装筛选变化：更新URL + 重新加载
   function onFilterChange() {
     currentPage = 1;
+    syncUrl();
     loadScripts();
+  }
+
+  // 包装Tab切换：更新URL
+  function switchTab(tab: SideTab) {
+    activeTab = tab;
+    syncUrl();
   }
 
   function totalPages() {
@@ -204,9 +241,18 @@
     return Math.max(1, Math.ceil(reviewTotal / 20));
   }
 
+  function goToPage(p: number) {
+    if (p >= 1 && p <= totalPages()) {
+      currentPage = p;
+      syncUrl();
+      loadScripts();
+    }
+  }
+
   onMount(() => {
+    initFromUrl();
     loadTags();
-    loadScripts();
+    if (activeTab === 'browse') loadScripts();
   });
 
   $effect(() => {
@@ -220,7 +266,7 @@
       <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">脚本分享</h2>
       <nav class="space-y-0.5">
         <button
-          onclick={() => (activeTab = 'browse')}
+          onclick={() => switchTab('browse')}
           class="w-full text-left px-3 py-2 text-sm rounded-md transition-colors {activeTab === 'browse'
             ? 'bg-white text-blue-600 font-medium shadow-sm'
             : 'text-gray-600 hover:bg-white/60 hover:text-gray-900'}"
@@ -228,7 +274,7 @@
           浏览脚本
         </button>
         <button
-          onclick={() => (activeTab = 'upload')}
+          onclick={() => switchTab('upload')}
           class="w-full text-left px-3 py-2 text-sm rounded-md transition-colors {activeTab === 'upload'
             ? 'bg-white text-blue-600 font-medium shadow-sm'
             : 'text-gray-600 hover:bg-white/60 hover:text-gray-900'}"
@@ -237,7 +283,7 @@
         </button>
         {#if isAdmin}
           <button
-            onclick={() => (activeTab = 'review')}
+            onclick={() => switchTab('review')}
             class="w-full text-left px-3 py-2 text-sm rounded-md transition-colors {activeTab === 'review'
               ? 'bg-white text-blue-600 font-medium shadow-sm'
               : 'text-gray-600 hover:bg-white/60 hover:text-gray-900'}"
@@ -379,7 +425,7 @@
           {#if totalPages() > 1}
             <div class="flex items-center justify-center gap-2 mt-6">
               <button
-                onclick={() => { if (currentPage > 1) { currentPage--; loadScripts(); } }}
+                onclick={() => goToPage(currentPage - 1)}
                 disabled={currentPage <= 1}
                 class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
@@ -387,7 +433,7 @@
               </button>
               <span class="text-sm text-gray-500">{currentPage} / {totalPages()}</span>
               <button
-                onclick={() => { if (currentPage < totalPages()) { currentPage++; loadScripts(); } }}
+                onclick={() => goToPage(currentPage + 1)}
                 disabled={currentPage >= totalPages()}
                 class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >

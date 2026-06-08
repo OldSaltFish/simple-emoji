@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { FilterOptions } from '$lib/types';
+  import type { FilterOptions, Category } from '$lib/types';
 
   let {
     categories = $bindable([]),
@@ -9,15 +9,34 @@
     onDownloadCategory = $bindable()
   } = $props();
 
-  let isExpanded = $state(true);
-  let showCategoryDropdown = $state(false);
+  let showCategoryPopup = $state(false);
   let showSortDropdown = $state(false);
+  let popupRef: HTMLElement;
+
+  // 点击外部关闭popup
+  function handleClickOutside(e: MouseEvent) {
+    if (showCategoryPopup && popupRef && !popupRef.contains(e.target as Node)) {
+      showCategoryPopup = false;
+    }
+  }
+
+  $effect(() => {
+    if (showCategoryPopup) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  });
 
   function updateFilter(key: keyof FilterOptions, value: any) {
     filters = { ...filters, [key]: value };
     if (onFilterChange) {
       onFilterChange(filters);
     }
+  }
+
+  function selectCategory(categoryName: string) {
+    updateFilter('category', categoryName);
+    showCategoryPopup = false;
   }
 
   function toggleTag(tagName: string) {
@@ -45,9 +64,8 @@
     { value: 'name', label: '名称' }
   ];
 
-  // 筛选无分类
   function filterNoCategory() {
-    updateFilter('category', 'none');
+    selectCategory('none');
   }
 </script>
 
@@ -55,46 +73,106 @@
   <div class="max-w-[1280px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-3">
     <!-- 移动端：两行布局 -->
     <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
-      <!-- 第一行：分类 + 搜索 -->
+      <!-- 第一行：图集选择 + 搜索 -->
       <div class="flex items-center gap-2 sm:gap-3 flex-1">
-        <!-- 分类选择 -->
-        <div class="relative flex-shrink-0">
-        <button
-          onclick={() => showCategoryDropdown = !showCategoryDropdown}
-          class="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-white border border-gray-300 rounded-lg hover:border-gray-400 transition-colors"
-        >
-          <span class="text-sm text-gray-700 whitespace-nowrap">
-            {filters.category === 'none' ? '无图集' : (filters.category || '全部图集')}
-          </span>
-          <svg class="w-4 h-4 text-gray-400" class:rotate-180={showCategoryDropdown} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+        <!-- 图集选择（popup触发器） -->
+        <div class="relative flex-shrink-0" bind:this={popupRef}>
+          <button
+            onclick={() => showCategoryPopup = !showCategoryPopup}
+            class="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 bg-white border border-gray-300 rounded-lg hover:border-gray-400 transition-colors"
+          >
+            <span class="text-sm text-gray-700 whitespace-nowrap font-medium">
+              {filters.category === 'none' ? '无图集' : (filters.category || '全部')}
+            </span>
+            <svg class="w-4 h-4 text-gray-400" class:rotate-180={showCategoryPopup} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
-        {#if showCategoryDropdown}
-          <div class="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-[140px] z-50 max-h-[60vh] overflow-y-auto">
-            <button
-              onclick={() => { updateFilter('category', ''); showCategoryDropdown = false; }}
-              class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-            >
-              全部图集
-            </button>
-            <button
-              onclick={() => { filterNoCategory(); showCategoryDropdown = false; }}
-              class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-            >
-              无图集
-            </button>
-            {#each categories as category}
+          <!-- Popup：非模态浮层 -->
+          {#if showCategoryPopup}
+            <div class="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl py-3 px-3 z-50 w-[340px] sm:w-[420px] animate-in fade-in slide-in-from-top-1 duration-150">
+              <!-- 全部选项 -->
               <button
-                onclick={() => { updateFilter('category', category.name); showCategoryDropdown = false; }}
-                class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                onclick={() => selectCategory('')}
+                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-left {filters.category === '' && filters.category !== 'none' ? 'bg-blue-50 text-blue-600' : ''}"
               >
-                {category.name}
+                <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                </div>
+                <div class="min-w-0">
+                  <div class="text-sm font-medium">全部</div>
+                  <div class="text-xs text-gray-400">查看所有表情包</div>
+                </div>
+                {#if filters.category === '' && filters.category !== 'none'}
+                  <svg class="w-4 h-4 text-blue-500 ml-auto shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                {/if}
               </button>
-            {/each}
-          </div>
-        {/if}
+
+              <div class="border-t border-gray-100 my-1"></div>
+
+              <!-- 图集列表 -->
+              <div class="max-h-[320px] overflow-y-auto space-y-0.5 pr-1">
+                {#each categories as album}
+                  <button
+                    onclick={() => selectCategory(album.name)}
+                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left group {filters.category === album.name ? 'bg-blue-50' : ''}"
+                  >
+                    <!-- 缩略图 -->
+                    <div class="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
+                      {#if album.cover_url}
+                        <img src={album.cover_url} alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" draggable="false" />
+                      {:else}
+                        <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      {/if}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="text-sm font-medium truncate {filters.category === album.name ? 'text-blue-600' : 'text-gray-700'}">{album.name}</div>
+                      <div class="text-xs text-gray-400 truncate">{album.description || '暂无描述'}</div>
+                    </div>
+                    {#if filters.category === album.name}
+                      <svg class="w-4 h-4 text-blue-500 ml-auto shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    {/if}
+                  </button>
+                {/each}
+
+                {#if categories.length === 0}
+                  <div class="text-center py-6 text-sm text-gray-400">暂无图集</div>
+                {/if}
+
+                <!-- 无图集选项 -->
+                <div class="border-t border-gray-100 mt-1 pt-1">
+                  <button
+                    onclick={filterNoCategory}
+                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left {filters.category === 'none' ? 'bg-blue-50 text-blue-600' : ''}"
+                  >
+                    <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center shrink-0">
+                      <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                    </div>
+                    <div class="min-w-0">
+                      <div class="text-sm font-medium">无图集</div>
+                      <div class="text-xs text-gray-400">未分类的表情包</div>
+                    </div>
+                    {#if filters.category === 'none'}
+                      <svg class="w-4 h-4 text-blue-500 ml-auto shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    {/if}
+                  </button>
+                </div>
+              </div>
+            </div>
+          {/if}
         </div>
 
         <!-- 搜索框 -->
@@ -188,3 +266,9 @@
     </div>
   </div>
 </div>
+
+<style>
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slide-in-from-top-1 { from { transform: translateY(-4px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .animate-in { animation: fade-in 0.15s ease-out, slide-in-from-top-1 0.15s ease-out; }
+</style>

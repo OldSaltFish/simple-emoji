@@ -4,7 +4,9 @@
   const menuItems = [
     { id: 'interfaces', name: '接口管理', icon: '🔗' },
     { id: 'categories', name: '图集管理', icon: '📁' },
-    { id: 'check-in', name: '签到管理', icon: '✅' }
+    { id: 'check-in', name: '签到管理', icon: '✅' },
+    { id: 'llm-api-test', name: '密钥管理', icon: '🔑' },
+    { id: 'chat', name: '模型聊天', icon: '💬' }
   ];
 
   function handleTabClick(tabId: string) {
