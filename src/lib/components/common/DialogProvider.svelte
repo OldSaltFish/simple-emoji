@@ -17,7 +17,7 @@
     state = s as any;
   });
 
-  let inputElement: HTMLInputElement;
+  let inputElement: HTMLInputElement | undefined;
 
   $effect(() => {
     if (state.isOpen && state.type === 'prompt' && browser) {

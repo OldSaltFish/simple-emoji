@@ -57,6 +57,12 @@
             ? 'bg-white text-blue-600 shadow-sm'
             : 'text-gray-600 hover:text-gray-900'}">脚本分享</a
         >
+        <a
+          href="/tools/codec-support"
+          class="px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap {isActive('/tools')
+            ? 'bg-white text-blue-600 shadow-sm'
+            : 'text-gray-600 hover:text-gray-900'}">工具集</a
+        >
       </nav>
 
       <!-- 管理链接：仅宽屏显示 -->

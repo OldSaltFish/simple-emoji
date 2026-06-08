@@ -5,6 +5,10 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 const config = {
 	preprocess: vitePreprocess(),
 
+	compilerOptions: {
+		warningFilter: (warning) => !warning.code.startsWith('a11y_') && warning.code !== 'non_reactive_update'
+	},
+
 	kit: {
 		adapter: adapter({
 			edge: false,
