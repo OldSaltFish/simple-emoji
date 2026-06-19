@@ -176,7 +176,7 @@
       </button>
       <button
         onclick={openAddModal}
-        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
       >
         添加图集
       </button>
@@ -186,7 +186,7 @@
   <div class="p-6">
     {#if loading}
       <div class="text-center py-8">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
         <p class="mt-2 text-gray-600">加载中...</p>
       </div>
     {:else}
@@ -211,7 +211,7 @@
             <div class="p-4 border-t border-gray-100 flex justify-end gap-2">
               <button
                 onclick={() => openEditModal(category)}
-                class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
               >
                 编辑
               </button>
@@ -240,7 +240,7 @@
             bind:value={editingCategory.name}
             type="text"
             readonly={!isNew}
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400 bg-gray-50"
             class:bg-white={isNew}
           />
         </div>
@@ -249,7 +249,7 @@
           <textarea
             bind:value={editingCategory.description}
             rows="3"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"
           ></textarea>
         </div>
         <div>
@@ -266,7 +266,7 @@
               {#if !isNew}
                 <button
                   onclick={openSelectCoverModal}
-                  class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-2 rounded-lg text-sm transition-colors"
+                  class="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-4 py-2 rounded-lg text-sm transition-colors"
                 >
                   从图库选取
                 </button>
@@ -284,7 +284,7 @@
         </button>
         <button
           onclick={saveCategory}
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
           保存
         </button>
@@ -307,7 +307,7 @@
       <div class="p-6 overflow-y-auto flex-1">
         {#if loadingImages}
           <div class="text-center py-8">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
           </div>
         {:else if categoryImages.length === 0}
           <p class="text-center text-gray-500 py-8">该分类下暂无图片</p>
@@ -316,7 +316,7 @@
             {#each categoryImages as image}
               <button
                 onclick={() => selectCover(image.url)}
-                class="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500 transition-all focus:outline-none"
+                class="aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-indigo-500 transition-all focus:outline-none"
               >
                 <img src={image.url} alt="" class="w-full h-full object-cover" />
               </button>

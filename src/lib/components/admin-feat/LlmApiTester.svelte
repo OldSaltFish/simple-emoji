@@ -17,7 +17,7 @@
 
   const apiTypeColors: Record<ApiType, string> = {
     openai: 'bg-green-100 text-green-700',
-    gemini: 'bg-blue-100 text-blue-700',
+    gemini: 'bg-indigo-100 text-indigo-700',
     claude: 'bg-orange-100 text-orange-700',
   };
 
@@ -529,7 +529,7 @@
     </div>
     <button
       onclick={openAddModal}
-      class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+      class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
     >
       <span class="text-lg leading-none">+</span>
       <span>添加密钥</span>
@@ -538,7 +538,7 @@
 
   {#if loading}
     <div class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       <p class="mt-2 text-gray-600">加载中...</p>
     </div>
   {:else if configs.length === 0}
@@ -552,7 +552,7 @@
       <select
         value={filterGroup}
         onchange={(e) => { filterGroup = (e.target as HTMLSelectElement).value; onFilterChange(); }}
-        class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"
       >
         <option value="">全部密钥分组</option>
         <option value="__none__">(无)</option>
@@ -563,7 +563,7 @@
       <select
         value={filterEndpointGroup}
         onchange={(e) => { filterEndpointGroup = (e.target as HTMLSelectElement).value; onFilterChange(); }}
-        class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"
       >
         <option value="">全部站点分组</option>
         <option value="__none__">(无)</option>
@@ -600,7 +600,7 @@
                 href={getEndpointUrl(config.endpoint)}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-sm text-blue-600 hover:text-blue-800 hover:underline truncate font-mono"
+                class="text-sm text-indigo-600 hover:text-indigo-800 hover:underline truncate font-mono"
                 title={config.endpoint}
               >{config.endpoint}</a>
               {#if config.endpoint_note}
@@ -610,7 +610,7 @@
             <div class="flex items-center gap-1 flex-shrink-0">
               <button
                 onclick={() => copyToClipboard(config.endpoint, '端点')}
-                class="text-gray-400 hover:text-blue-600 p-1 rounded transition-colors"
+                class="text-gray-400 hover:text-indigo-600 p-1 rounded transition-colors"
                 title="复制端点"
               >
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
@@ -657,7 +657,7 @@
                   </button>
                   <button
                     onclick={() => copyToClipboard(config.api_key, '密钥')}
-                    class="text-gray-400 hover:text-blue-600 flex-shrink-0 transition-colors"
+                    class="text-gray-400 hover:text-indigo-600 flex-shrink-0 transition-colors"
                     title="复制密钥"
                   >
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
@@ -723,7 +723,7 @@
                 {/if}
                 <button
                   onclick={() => openEditModal(config)}
-                  class="text-gray-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                  class="text-gray-400 hover:text-indigo-600 p-1.5 rounded-lg hover:bg-indigo-50 transition-colors"
                   title="编辑"
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -749,7 +749,7 @@
           <select
             value={pageSize}
             onchange={(e) => onPageSizeChange(Number((e.target as HTMLSelectElement).value))}
-            class="border border-gray-300 rounded-md px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="border border-gray-300 rounded-md px-2 py-1 text-sm focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"
           >
             {#each PAGE_SIZE_OPTIONS as opt}
               <option value={opt}>{opt} 条/页</option>
@@ -766,7 +766,7 @@
             {#if page === currentPage || Math.abs(page - currentPage) <= 1 || page === 1 || page === Math.ceil(total / pageSize)}
               <button
                 onclick={() => goToPage(page)}
-                class="px-3 py-1.5 text-sm rounded-md transition-colors {page === currentPage ? 'bg-blue-600 text-white' : 'border border-gray-300 hover:bg-gray-50'}"
+                class="px-3 py-1.5 text-sm rounded-md transition-colors {page === currentPage ? 'bg-indigo-600 text-white' : 'border border-gray-300 hover:bg-gray-50'}"
               >{page}</button>
             {:else if page === currentPage - 2 || page === currentPage + 2}
               <span class="px-1 text-gray-400">...</span>
@@ -795,7 +795,7 @@
               <button
                 type="button"
                 class="flex-1 py-2 text-sm font-medium rounded-md transition-all
-                  {editForm.api_type === type ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
+                  {editForm.api_type === type ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}"
                 onclick={() => (editForm.api_type = type)}
               >
                 {apiTypeLabels[type]}
@@ -811,7 +811,7 @@
             bind:value={editForm.endpoint}
             type="text"
             placeholder="https://api.openai.com"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"
           />
         </div>
 
@@ -822,7 +822,7 @@
             bind:value={editForm.api_key}
             type="text"
             placeholder="sk-..."
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400 font-mono text-sm"
           />
         </div>
 
@@ -834,7 +834,7 @@
               bind:value={editForm.key_note}
               type="text"
               placeholder="密钥用途说明"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"
             />
           </div>
           <div>
@@ -844,7 +844,7 @@
               bind:value={editForm.endpoint_note}
               type="text"
               placeholder="端点来源说明"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"
             />
           </div>
         </div>
@@ -857,7 +857,7 @@
               bind:value={editForm.group}
               type="text"
               placeholder="如：个人、公司、备用"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"
             />
           </div>
           <div>
@@ -867,7 +867,7 @@
               bind:value={editForm.endpoint_group}
               type="text"
               placeholder="如：QQ群签到、自建、官方"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"
             />
           </div>
         </div>
@@ -883,7 +883,7 @@
         <button
           onclick={saveConfig}
           disabled={saving}
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
         >
           {saving ? '保存中...' : '保存'}
         </button>
@@ -919,15 +919,15 @@
             {:else}
               <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
               <div class="relative" onclick={(e) => e.stopPropagation()} role="presentation">
-                <div class="w-full px-2.5 py-1.5 text-xs border border-blue-400 rounded-lg bg-white shadow-sm flex items-center justify-between">
+                <div class="w-full px-2.5 py-1.5 text-xs border border-indigo-400 rounded-lg bg-white shadow-sm flex items-center justify-between">
                   <span class="truncate font-medium text-gray-800">{chatCurrentSource?.endpoint || '选择端点'}</span>
-                  <svg class="w-3 h-3 text-blue-500 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                  <svg class="w-3 h-3 text-indigo-500 shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
                 </div>
                 <div class="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto z-20">
                   {#each chatDisplaySources as src}
                     <button
                       onclick={() => { chatConfigId = src.config_id; chatModel = ''; autoSelectChatModel(); chatConfigPickerOpen = false; }}
-                      class="w-full text-left px-3 py-1.5 text-xs hover:bg-blue-50 transition-colors {src.config_id === chatConfigId ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}"
+                      class="w-full text-left px-3 py-1.5 text-xs hover:bg-indigo-50 transition-colors {src.config_id === chatConfigId ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'}"
                     >
                       <div class="truncate font-medium">{src.endpoint}</div>
                       <div class="text-[10px] text-gray-400 mt-0.3">{src.api_type} · {src.available_models.length > 0 ? src.available_models.length + ' 可用' : '未检测'}</div>
@@ -959,7 +959,7 @@
               {:else}
                 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
                 <div class="relative" onclick={(e) => e.stopPropagation()} role="presentation">
-                  <div class="w-full px-2 py-1 text-[11px] border border-blue-300 rounded-md bg-blue-50/50 text-blue-700 flex items-center gap-1">
+                  <div class="w-full px-2 py-1 text-[11px] border border-indigo-300 rounded-md bg-indigo-50/50 text-indigo-700 flex items-center gap-1">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
                     选择模型
                   </div>
@@ -1011,7 +1011,7 @@
               <button
                 onclick={() => { chatConfigId = src.config_id; chatModel = ''; autoSelectChatModel(); }}
                 class="w-full text-left px-2 py-1.5 rounded-md text-xs transition-colors {src.config_id === chatConfigId
-                  ? 'bg-blue-100 text-blue-700'
+                  ? 'bg-indigo-100 text-indigo-700'
                   : 'hover:bg-gray-100/80 text-gray-600'}"
               >{src.endpoint}</button>
             {/each}
@@ -1030,7 +1030,7 @@
               {#each chatMessages as msg}
                 <div class="flex gap-2 {msg.role === 'user' ? 'justify-end' : 'justify-start'}">
                   <div class="max-w-[80%] rounded-2xl px-3 py-2 text-sm {msg.role === 'user'
-                    ? 'bg-blue-600 text-white rounded-br-sm'
+                    ? 'bg-indigo-600 text-white rounded-br-sm'
                     : 'bg-gray-100 border border-gray-200 text-gray-800 rounded-bl-sm shadow-sm'}">
                     {#if msg.role === 'assistant' && msg.loading && !msg.content}
                       <div class="flex gap-1 py-1">
@@ -1043,7 +1043,7 @@
                     {:else}
                       <div class="whitespace-pre-wrap break-words leading-relaxed">{msg.content}</div>
                       {#if msg.role === 'assistant' && msg.loading}
-                        <span class="inline-block w-1 h-3.5 bg-blue-500 ml-0.5 animate-pulse align-middle"></span>
+                        <span class="inline-block w-1 h-3.5 bg-indigo-500 ml-0.5 animate-pulse align-middle"></span>
                       {/if}
                     {/if}
                   </div>
@@ -1200,7 +1200,7 @@
         <div class="flex items-center gap-2">
           <button
             onclick={() => copyToClipboard((viewingHistory!.available_models || []).join('\n'), '可用模型列表')}
-            class="text-gray-400 hover:text-blue-600 p-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+            class="text-gray-400 hover:text-indigo-600 p-1.5 rounded-lg hover:bg-indigo-50 transition-colors"
             title="复制可用模型列表"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -149,7 +149,7 @@
 						bind:value={concurrentCount}
 						min="1"
 						max="20"
-						class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+						class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"
 						disabled={isRunning}
 					/>
 				</div>
@@ -160,7 +160,7 @@
 						bind:value={delaySeconds}
 						min="1"
 						max="300"
-						class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+						class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"
 						disabled={isRunning}
 					/>
 				</div>
@@ -171,7 +171,7 @@
 						bind:value={timeoutSeconds}
 						min="1"
 						max="300"
-						class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+						class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"
 						disabled={isRunning}
 					/>
 				</div>
@@ -183,7 +183,7 @@
 						type="checkbox"
 						bind:checked={useAbortController}
 						disabled={isRunning}
-						class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+						class="w-4 h-4 text-indigo-600 rounded focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"
 					/>
 					<span class="text-sm text-gray-700">使用 AbortController 设置超时</span>
 				</label>
@@ -195,7 +195,7 @@
 			<button
 				onclick={runTest}
 				disabled={isRunning}
-				class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+				class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400 transition-colors"
 			>
 				{isRunning ? '测试中...' : '开始测试'}
 			</button>

@@ -158,15 +158,15 @@
         onclick={toggleOpen}
         onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleOpen(e); }}
         class="w-full min-h-[38px] flex flex-wrap items-center gap-1 px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-sm hover:border-gray-400 transition-all cursor-text"
-        class:border-blue-400={isOpen}
+        class:border-indigo-400={isOpen}
       >
         {#each values as val}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs border border-blue-200">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs border border-indigo-200">
             <span class="max-w-[100px] truncate">{getLabelByValue(val)}</span>
             <button
               type="button"
               onclick={(e) => removeTag(val, e)}
-              class="hover:bg-blue-200 rounded-sm p-0.5 transition-colors"
+              class="hover:bg-indigo-200 rounded-sm p-0.5 transition-colors"
               title="移除"
             >
               <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -193,7 +193,7 @@
         type="button"
         onclick={toggleOpen}
         class="w-full flex items-center justify-between gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 hover:border-gray-400 transition-all"
-        class:border-blue-400={isOpen}
+        class:border-indigo-400={isOpen}
       >
         <span class="truncate">{selectedLabel}</span>
         <svg
@@ -253,8 +253,8 @@
             type="button"
             onclick={() => handleSelect(option.value)}
             class="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 transition-colors flex items-center justify-between"
-            class:text-blue-600={isSelected(option.value)}
-            class:bg-blue-50={isSelected(option.value)}
+            class:text-indigo-600={isSelected(option.value)}
+            class:bg-indigo-50={isSelected(option.value)}
             class:text-gray-700={!isSelected(option.value)}
           >
             <span>{option.label}</span>

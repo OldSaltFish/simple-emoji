@@ -71,7 +71,7 @@
               bind:value={state.value}
               onkeydown={handleKeydown}
               placeholder={state.placeholder}
-              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all"
             />
           </div>
         {/if}
@@ -88,7 +88,7 @@
         {/if}
         <button
           onclick={handleConfirm}
-          class="px-5 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-sm hover:shadow-md"
+          class="px-5 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm hover:shadow-md"
         >
           {state.confirmText}
         </button>

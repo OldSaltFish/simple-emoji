@@ -304,7 +304,7 @@
 <div class="max-w-full mx-auto px-2 xs:px-3 sm:px-4 lg:px-8 py-3 xs:py-4 sm:py-6">
   {#if loading}
     <div class="flex justify-center items-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
     </div>
   {:else if images.length === 0}
     <div class="text-center py-12">
@@ -345,7 +345,7 @@
 
           <button
             onclick={handleBatchDownload}
-            class="flex items-center gap-1 px-2 sm:px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            class="flex items-center gap-1 px-2 sm:px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
             title={downloadMode === 'zip' ? '打包下载' : '批量下载'}
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -383,7 +383,7 @@
       {#each images as image}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
-          class="group relative bg-white rounded-lg border-2 {selectedIds.has(image.id) ? 'border-blue-500' : 'border-gray-200'} overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+          class="group relative bg-white rounded-lg border-2 {selectedIds.has(image.id) ? 'border-indigo-500' : 'border-gray-200'} overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
           oncontextmenu={(e) => handleImageContextMenu(e, image)}
           ontouchstart={(e) => handleImageTouchStart(e, image)}
           ontouchend={() => contextMenu?.handleTouchEnd()}
@@ -394,9 +394,9 @@
             <button
               onclick={() => toggleSelect(image.id)}
               class="w-5 h-5 rounded border-2 flex items-center justify-center transition-colors xs:w-6 xs:h-6"
-              class:border-blue-500={selectedIds.has(image.id)}
+              class:border-indigo-500={selectedIds.has(image.id)}
               class:border-gray-300={!selectedIds.has(image.id)}
-              class:bg-blue-500={selectedIds.has(image.id)}
+              class:bg-indigo-500={selectedIds.has(image.id)}
               class:bg-white={!selectedIds.has(image.id)}
             >
               {#if selectedIds.has(image.id)}
@@ -448,7 +448,7 @@
 
             <!-- 分类 -->
             {#if image.category}
-              <div class="text-xs text-blue-600 mb-1">
+              <div class="text-xs text-indigo-600 mb-1">
                 {image.category.name}
               </div>
             {/if}

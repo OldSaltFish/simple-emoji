@@ -65,7 +65,7 @@
   <!-- 加载中 -->
   <div class="bg-gray-50 flex items-center justify-center min-h-[calc(100vh-4rem)]">
     <div class="text-center">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       <p class="mt-2 text-gray-600">验证权限中...</p>
     </div>
   </div>

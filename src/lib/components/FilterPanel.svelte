@@ -95,7 +95,7 @@
               <!-- 全部选项 -->
               <button
                 onclick={() => selectCategory('')}
-                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-left {filters.category === '' && filters.category !== 'none' ? 'bg-blue-50 text-blue-600' : ''}"
+                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-left {filters.category === '' && filters.category !== 'none' ? 'bg-indigo-50 text-indigo-600' : ''}"
               >
                 <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
                   <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,7 +107,7 @@
                   <div class="text-xs text-gray-400">查看所有表情包</div>
                 </div>
                 {#if filters.category === '' && filters.category !== 'none'}
-                  <svg class="w-4 h-4 text-blue-500 ml-auto shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4 text-indigo-500 ml-auto shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
                 {/if}
@@ -120,7 +120,7 @@
                 {#each categories as album}
                   <button
                     onclick={() => selectCategory(album.name)}
-                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left group {filters.category === album.name ? 'bg-blue-50' : ''}"
+                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left group {filters.category === album.name ? 'bg-indigo-50' : ''}"
                   >
                     <!-- 缩略图 -->
                     <div class="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
@@ -133,11 +133,11 @@
                       {/if}
                     </div>
                     <div class="min-w-0 flex-1">
-                      <div class="text-sm font-medium truncate {filters.category === album.name ? 'text-blue-600' : 'text-gray-700'}">{album.name}</div>
+                      <div class="text-sm font-medium truncate {filters.category === album.name ? 'text-indigo-600' : 'text-gray-700'}">{album.name}</div>
                       <div class="text-xs text-gray-400 truncate">{album.description || '暂无描述'}</div>
                     </div>
                     {#if filters.category === album.name}
-                      <svg class="w-4 h-4 text-blue-500 ml-auto shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 text-indigo-500 ml-auto shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                       </svg>
                     {/if}
@@ -152,7 +152,7 @@
                 <div class="border-t border-gray-100 mt-1 pt-1">
                   <button
                     onclick={filterNoCategory}
-                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left {filters.category === 'none' ? 'bg-blue-50 text-blue-600' : ''}"
+                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-left {filters.category === 'none' ? 'bg-indigo-50 text-indigo-600' : ''}"
                   >
                     <div class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center shrink-0">
                       <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,7 +164,7 @@
                       <div class="text-xs text-gray-400">未分类的表情包</div>
                     </div>
                     {#if filters.category === 'none'}
-                      <svg class="w-4 h-4 text-blue-500 ml-auto shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 text-indigo-500 ml-auto shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                       </svg>
                     {/if}
@@ -186,7 +186,7 @@
               placeholder="搜索..."
               bind:value={filters.search}
               oninput={() => updateFilter('search', filters.search)}
-              class="w-full pl-8 sm:pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] focus:border-blue-400 text-sm"
+              class="w-full pl-8 sm:pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 text-sm"
             />
           </div>
         </div>
@@ -240,7 +240,7 @@
       {#if filters.category && filters.category !== 'none' && onDownloadCategory}
         <button
           onclick={() => onDownloadCategory(filters.category)}
-          class="flex items-center gap-1 px-2 sm:px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          class="flex items-center gap-1 px-2 sm:px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           title="下载该图集"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

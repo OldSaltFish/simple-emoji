@@ -148,7 +148,7 @@
       case 'success':
         return { text: '已签到', class: 'bg-green-100 text-green-700' };
       case 'already_signed':
-        return { text: '已签到', class: 'bg-blue-100 text-blue-700' };
+        return { text: '已签到', class: 'bg-indigo-100 text-indigo-700' };
       case 'error':
         return { text: '失败', class: 'bg-red-100 text-red-700' };
       default:
@@ -214,7 +214,7 @@
     <div class="p-6">
       {#if sitesInitialLoading}
         <div class="text-center py-8">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
           <p class="mt-2 text-gray-600">加载中...</p>
         </div>
       {:else if sites.length === 0}
@@ -246,7 +246,7 @@
                   <div class="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-10 min-w-[120px]">
                     <button
                       onclick={(e) => { e.stopPropagation(); executeCheckIn(site.id); }}
-                      class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                      class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
                     >
                       立即签到
                     </button>
@@ -265,7 +265,7 @@
                   {badge.text}
                 </span>
                 {#if isExecuting}
-                  <div class="w-4 h-4 border-2 border-blue-600 border-t-transparent animate-spin rounded-full"></div>
+                  <div class="w-4 h-4 border-2 border-indigo-600 border-t-transparent animate-spin rounded-full"></div>
                 {/if}
               </div>
 
@@ -295,7 +295,7 @@
           <input
             type="date"
             bind:value={filterDateFrom}
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all"
           />
         </div>
         <div class="flex-1 min-w-[140px]">
@@ -303,14 +303,14 @@
           <input
             type="date"
             bind:value={filterDateTo}
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all"
           />
         </div>
         <div class="flex-1 min-w-[140px]">
           <label class="block text-xs font-medium text-gray-500 mb-1">站点</label>
           <select
             bind:value={filterSiteId}
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all bg-white"
           >
             <option value="">全部</option>
             {#each sites as site}
@@ -322,7 +322,7 @@
           <label class="block text-xs font-medium text-gray-500 mb-1">状态</label>
           <select
             bind:value={filterStatus}
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-white"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400 outline-none transition-all bg-white"
           >
             <option value="">全部</option>
             <option value="success">成功</option>
@@ -333,7 +333,7 @@
         <div class="flex gap-2">
           <button
             onclick={() => { currentPage = 1; loadLogs(); }}
-            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm"
           >
             查询
           </button>
@@ -351,7 +351,7 @@
     <div class="overflow-x-auto">
       {#if logsInitialLoading}
         <div class="text-center py-8">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
           <p class="mt-2 text-gray-600">加载中...</p>
         </div>
       {:else if logs.length === 0}
@@ -388,7 +388,7 @@
                     {#if log.detail}
                       <button
                         onclick={() => expandedLogId = expandedLogId === log.id ? null : log.id}
-                        class="ml-1 text-blue-500 hover:text-blue-700 text-xs underline"
+                        class="ml-1 text-indigo-500 hover:text-indigo-700 text-xs underline"
                       >
                         {expandedLogId === log.id ? '收起' : '详情'}
                       </button>

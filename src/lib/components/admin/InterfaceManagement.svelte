@@ -184,7 +184,7 @@
       <h2 class="text-2xl font-bold text-gray-900">接口管理</h2>
       <button
         onclick={openAddModal}
-        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
       >
         添加接口
       </button>
@@ -194,7 +194,7 @@
   <div class="p-6">
     {#if loading}
       <div class="text-center py-8">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
         <p class="mt-2 text-gray-600">加载中...</p>
       </div>
     {:else if imageHosts.length === 0}
@@ -228,7 +228,7 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{host.current_load || 0}/{host.max_limit}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button onclick={() => openEditModal(host)} class="text-blue-600 hover:text-blue-900 mr-3">编辑</button>
+                  <button onclick={() => openEditModal(host)} class="text-indigo-600 hover:text-indigo-900 mr-3">编辑</button>
                   <button onclick={() => deleteHost(host)} class="text-red-600 hover:text-red-900">删除</button>
                 </td>
               </tr>
@@ -251,32 +251,32 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">接口名称</label>
-            <input bind:value={formData.name} type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="例如: Imgur" />
+            <input bind:value={formData.name} type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400" placeholder="例如: Imgur" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">上传地址</label>
-            <input bind:value={formData.upload_url} type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="https://api.example.com/upload" />
+            <input bind:value={formData.upload_url} type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400" placeholder="https://api.example.com/upload" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">文件字段名</label>
-            <input bind:value={formData.file_field} type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="file" />
+            <input bind:value={formData.file_field} type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400" placeholder="file" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">响应URL路径</label>
-            <input bind:value={formData.url_path} type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="如: data.url" />
+            <input bind:value={formData.url_path} type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400" placeholder="如: data.url" />
           </div>
         </div>
 
         <div>
           <div class="flex justify-between items-center mb-2">
             <label class="block text-sm font-medium text-gray-700">Header 参数</label>
-            <button onclick={addHeaderParam} class="text-sm text-blue-600 hover:text-blue-800">+ 添加参数</button>
+            <button onclick={addHeaderParam} class="text-sm text-indigo-600 hover:text-indigo-800">+ 添加参数</button>
           </div>
           <div class="space-y-2">
             {#each Object.entries(formData.header_params || {}) as [key, value]}
               <div class="flex gap-2">
                 <input value={key} type="text" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" readonly />
-                <input bind:value={formData.header_params[key]} type="text" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="参数值" />
+                <input bind:value={formData.header_params[key]} type="text" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400" placeholder="参数值" />
                 <button onclick={() => removeHeaderParam(key)} class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg">删除</button>
               </div>
             {/each}
@@ -286,13 +286,13 @@
         <div>
           <div class="flex justify-between items-center mb-2">
             <label class="block text-sm font-medium text-gray-700">Form 参数</label>
-            <button onclick={addFormParam} class="text-sm text-blue-600 hover:text-blue-800">+ 添加参数</button>
+            <button onclick={addFormParam} class="text-sm text-indigo-600 hover:text-indigo-800">+ 添加参数</button>
           </div>
           <div class="space-y-2">
             {#each Object.entries(formData.form_params || {}) as [key, value]}
               <div class="flex gap-2">
                 <input value={key} type="text" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" readonly />
-                <input bind:value={formData.form_params[key]} type="text" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="参数值" />
+                <input bind:value={formData.form_params[key]} type="text" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400" placeholder="参数值" />
                 <button onclick={() => removeFormParam(key)} class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg">删除</button>
               </div>
             {/each}
@@ -301,15 +301,15 @@
 
         <div class="grid grid-cols-2 gap-4">
           <div class="flex items-center">
-            <input bind:checked={formData.no_head} type="checkbox" id="no_head" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
+            <input bind:checked={formData.no_head} type="checkbox" id="no_head" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
             <label for="no_head" class="ml-2 block text-sm text-gray-700">不带头部 (No Referer/Origin)</label>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">最大限制</label>
-            <input bind:value={formData.max_limit} type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+            <input bind:value={formData.max_limit} type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400" />
           </div>
           <div class="flex items-center">
-            <input bind:checked={formData.is_enabled} type="checkbox" id="is_enabled" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
+            <input bind:checked={formData.is_enabled} type="checkbox" id="is_enabled" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
             <label for="is_enabled" class="ml-2 block text-sm text-gray-700">启用接口</label>
           </div>
         </div>
@@ -317,7 +317,7 @@
 
       <div class="p-6 border-t border-gray-200 flex justify-end gap-3">
         <button onclick={closeModal} class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">取消</button>
-        <button onclick={saveHost} class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{editingHost ? "更新" : "添加"}</button>
+        <button onclick={saveHost} class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">{editingHost ? "更新" : "添加"}</button>
       </div>
     </div>
   </div>

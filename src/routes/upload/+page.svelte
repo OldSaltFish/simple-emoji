@@ -255,10 +255,10 @@
       <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-6">
         <div>
           <label for="file-input" class="block text-sm font-medium text-gray-700 mb-3">选择图片</label>
-          <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-blue-400 hover:bg-blue-50 transition-all group">
+          <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-indigo-400 hover:bg-indigo-50 transition-all group">
             <input id="file-input" type="file" multiple accept="image/*" onchange={handleFileSelect} class="hidden" />
             <label for="file-input" class="cursor-pointer">
-              <svg class="mx-auto h-12 w-12 text-gray-400 mb-3 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="mx-auto h-12 w-12 text-gray-400 mb-3 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
               <div class="text-gray-600 font-medium">点击选择图片或拖拽到此处</div>
@@ -272,7 +272,7 @@
             <div class="flex items-center justify-between mb-3">
               <label class="block text-sm font-medium text-gray-700">待上传文件 ({selectedFiles.length} 个)</label>
               {#if hasFailedUploads()}
-                <button onclick={retryAllFailed} disabled={uploading} class="text-sm text-blue-600 hover:text-blue-700 font-medium">一键重传失败项</button>
+                <button onclick={retryAllFailed} disabled={uploading} class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">一键重传失败项</button>
               {/if}
             </div>
             <div class="border border-gray-200 rounded-xl p-2 max-h-60 overflow-y-auto bg-gray-50">
@@ -289,10 +289,10 @@
                       </div>
                     </div>
                     <div class="flex items-center gap-2 flex-shrink-0">
-                      {#if uploadProgress[index]?.status === 'uploading'}<span class="text-xs text-blue-600 animate-pulse">上传中...</span>
+                      {#if uploadProgress[index]?.status === 'uploading'}<span class="text-xs text-indigo-600 animate-pulse">上传中...</span>
                       {:else if uploadProgress[index]?.status === 'success'}<span class="text-xs text-green-600 font-medium">✓ 已完成</span>
                       {:else if uploadProgress[index]?.status === 'error'}
-                        <button onclick={() => retryUpload(index)} class="p-1 text-blue-500 hover:bg-blue-50 rounded-full" title="重试">
+                        <button onclick={() => retryUpload(index)} class="p-1 text-indigo-500 hover:bg-indigo-50 rounded-full" title="重试">
                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                         </button>
                       {/if}
@@ -312,14 +312,14 @@
           {#if !showNewCategoryForm}
             <div class="space-y-3">
               <Select bind:value={selectedCategory} placeholder="请选择图集" options={categories.map(cat => ({ value: cat.name, label: cat.name }))} class="w-full" />
-              <button onclick={() => showNewCategoryForm = true} class="text-sm text-blue-600 hover:text-blue-700 font-medium">+ 创建新图集</button>
+              <button onclick={() => showNewCategoryForm = true} class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">+ 创建新图集</button>
             </div>
           {:else}
-            <div class="border border-blue-100 bg-blue-50/30 rounded-xl p-4 space-y-3">
-              <input type="text" placeholder="图集名称" bind:value={newCategoryName} class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
-              <textarea placeholder="图集描述（可选）" bind:value={newCategoryDescription} rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            <div class="border border-indigo-100 bg-indigo-50/30 rounded-xl p-4 space-y-3">
+              <input type="text" placeholder="图集名称" bind:value={newCategoryName} class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400" />
+              <textarea placeholder="图集描述（可选）" bind:value={newCategoryDescription} rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"></textarea>
               <div class="flex gap-2">
-                <button onclick={createNewCategory} class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium">创建</button>
+                <button onclick={createNewCategory} class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium">创建</button>
                 <button onclick={() => { showNewCategoryForm = false; newCategoryName = ''; newCategoryDescription = ''; }} class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-medium">取消</button>
               </div>
             </div>
@@ -328,20 +328,20 @@
 
         <div>
           <label for="description-textarea" class="block text-sm font-medium text-gray-700 mb-3">默认描述</label>
-          <textarea id="description-textarea" placeholder="将作为所有图片的初始描述..." bind:value={description} rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+          <textarea id="description-textarea" placeholder="将作为所有图片的初始描述..." bind:value={description} rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-xl outline-none focus:ring-1 focus:ring-indigo-100 focus:border-indigo-400"></textarea>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-3">图片标签</label>
           <div class="flex flex-wrap gap-2">
             {#each tags as tag}
-              <button onclick={() => toggleTag(tag.name)} class="px-3 py-1.5 text-sm rounded-full border transition-all {selectedTags.includes(tag.name) ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200' : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400'}">{tag.name}</button>
+              <button onclick={() => toggleTag(tag.name)} class="px-3 py-1.5 text-sm rounded-full border transition-all {selectedTags.includes(tag.name) ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100' : 'bg-white border-gray-300 text-gray-700 hover:border-indigo-400'}">{tag.name}</button>
             {/each}
           </div>
         </div>
 
         <div class="flex gap-3 pt-4">
-          <button onclick={handleSubmit} disabled={selectedFiles.length === 0 || !selectedCategory} class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all font-bold shadow-lg shadow-blue-100">
+          <button onclick={handleSubmit} disabled={selectedFiles.length === 0 || !selectedCategory} class="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all font-bold shadow-lg shadow-indigo-100">
             {selectedFiles.length <= 1 ? '保存到数据库' : `批量保存 ${selectedFiles.length} 个表情包`}
           </button>
           <button onclick={resetForm} class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 font-bold transition-all">重置</button>

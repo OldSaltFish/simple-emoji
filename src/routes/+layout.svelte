@@ -2,7 +2,6 @@
   import favicon from "$lib/assets/favicon.svg";
   import "@unocss/reset/tailwind-v4.css";
   import "virtual:uno.css";
-  import "./style.css";
   import Message from "$lib/components/Message.svelte";
   import AdminIndicator from "$lib/components/AdminIndicator.svelte";
   import KonamiCodeListener from "$lib/components/KonamiCodeListener.svelte";
@@ -48,19 +47,19 @@
         <a
           href="/recent"
           class="px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap {isActive('/recent')
-            ? 'bg-white text-blue-600 shadow-sm'
+            ? 'bg-white text-indigo-600 shadow-sm'
             : 'text-gray-600 hover:text-gray-900'}">表情包</a
         >
         <a
           href="/scripts"
           class="px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap {isActive('/scripts')
-            ? 'bg-white text-blue-600 shadow-sm'
+            ? 'bg-white text-indigo-600 shadow-sm'
             : 'text-gray-600 hover:text-gray-900'}">脚本分享</a
         >
         <a
           href="/tools/codec-support"
           class="px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap {isActive('/tools')
-            ? 'bg-white text-blue-600 shadow-sm'
+            ? 'bg-white text-indigo-600 shadow-sm'
             : 'text-gray-600 hover:text-gray-900'}">工具集</a
         >
       </nav>
@@ -71,8 +70,8 @@
           <a
             href="/upload"
             class="px-3 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap {isActive('/upload')
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-gray-500 hover:text-gray-700'}">上传</a
+              ? 'bg-white text-indigo-600 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'}">上传</a>
           >
           <a
             href="/test"

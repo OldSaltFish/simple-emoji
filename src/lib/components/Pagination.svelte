@@ -94,8 +94,8 @@
           <button
             onclick={() => goToPage(page)}
             class="min-w-[32px] sm:min-w-[36px] px-2 py-2 text-sm border rounded-lg transition-colors"
-            class:bg-blue-500={page === currentPage}
-            class:border-blue-500={page === currentPage}
+            class:bg-indigo-600={page === currentPage}
+            class:border-indigo-600={page === currentPage}
             class:border-gray-300={page !== currentPage}
             class:hover:bg-gray-50={page !== currentPage}
           >
@@ -156,12 +156,12 @@
             pattern="[0-9]*"
             bind:value={jumpPage}
             placeholder="页码"
-            class="w-16 px-2 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] focus:border-blue-400 text-center"
+            class="w-16 px-2 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-100 text-center"
             onkeydown={(e) => e.key === 'Enter' && handleJump()}
           />
           <button
             onclick={handleJump}
-            class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            class="px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
             跳转
           </button>

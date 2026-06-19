@@ -24,7 +24,7 @@
         return 'bg-yellow-100 border-yellow-400 text-yellow-700';
       case 'info':
       default:
-        return 'bg-blue-100 border-blue-400 text-blue-700';
+        return 'bg-indigo-100 border-indigo-400 text-indigo-700';
     }
   }
 </script>

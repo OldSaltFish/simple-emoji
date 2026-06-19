@@ -700,7 +700,7 @@
           <!-- 紧凑上传区域 -->
           <div
             class="relative border-2 border-dashed rounded-lg px-4 py-2.5 text-center cursor-pointer transition-colors
-              {isDragging ? 'border-blue-400 bg-blue-50' : 'border-gray-300 bg-white hover:border-gray-400'}"
+              {isDragging ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300 bg-white hover:border-gray-400'}"
             ondragover={(e: DragEvent) => { e.preventDefault(); isDragging = true; }}
             ondragleave={() => (isDragging = false)}
             ondrop={(e: DragEvent) => { e.preventDefault(); onDrop(e); }}
@@ -777,7 +777,7 @@
                 {#each result.tracks as track}
                   <div class="flex items-center gap-2 px-2.5 py-2 rounded-md bg-gray-50 border border-gray-100">
                     <span class="shrink-0 px-1.5 py-0.5 text-[11px] font-medium rounded
-                      {track.type === 'video' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}">
+                      {track.type === 'video' ? 'bg-indigo-100 text-indigo-600' : 'bg-amber-100 text-amber-600'}">
                       {track.type === 'video' ? '视频' : '音频'}
                     </span>
                     <div class="min-w-0 flex-1">
@@ -791,7 +791,7 @@
                         <span class="text-gray-400" title="canPlayType 不支持">❌</span>
                       {/if}
                       {#if track.mseSupported}
-                        <span class="text-blue-500 text-[11px] ml-0.5" title="MediaSource.isTypeSupported 支持">MSE</span>
+                        <span class="text-indigo-500 text-[11px] ml-0.5" title="MediaSource.isTypeSupported 支持">MSE</span>
                       {/if}
                     </div>
                   </div>
@@ -829,7 +829,7 @@
       <!-- 无文件时：居中上传区域 -->
       <div
         class="relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors mb-6
-          {isDragging ? 'border-blue-400 bg-blue-50' : 'border-gray-300 bg-white hover:border-gray-400'}"
+          {isDragging ? 'border-indigo-400 bg-indigo-50' : 'border-gray-300 bg-white hover:border-gray-400'}"
         ondragover={(e: DragEvent) => { e.preventDefault(); isDragging = true; }}
         ondragleave={() => (isDragging = false)}
         ondrop={(e: DragEvent) => { e.preventDefault(); onDrop(e); }}

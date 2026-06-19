@@ -49,15 +49,15 @@
   let reviewLoading = $state(false);
 
   const LANG_COLORS: Record<string, string> = {
-    powershell: 'bg-blue-100 text-blue-700',
-    pwsh: 'bg-blue-100 text-blue-700',
+    powershell: 'bg-indigo-100 text-indigo-700',
+    pwsh: 'bg-indigo-100 text-indigo-700',
     bash: 'bg-green-100 text-green-700',
     shell: 'bg-green-100 text-green-700',
     python: 'bg-yellow-100 text-yellow-700',
     javascript: 'bg-amber-100 text-amber-700',
     js: 'bg-amber-100 text-amber-700',
-    typescript: 'bg-blue-100 text-blue-800',
-    ts: 'bg-blue-100 text-blue-800',
+    typescript: 'bg-indigo-100 text-indigo-800',
+    ts: 'bg-indigo-100 text-indigo-800',
   };
 
   const TAG_COLORS = [
@@ -268,7 +268,7 @@
         <button
           onclick={() => switchTab('browse')}
           class="w-full text-left px-3 py-2 text-sm rounded-md transition-colors {activeTab === 'browse'
-            ? 'bg-white text-blue-600 font-medium shadow-sm'
+            ? 'bg-white text-indigo-600 font-medium shadow-sm'
             : 'text-gray-600 hover:bg-white/60 hover:text-gray-900'}"
         >
           浏览脚本
@@ -276,7 +276,7 @@
         <button
           onclick={() => switchTab('upload')}
           class="w-full text-left px-3 py-2 text-sm rounded-md transition-colors {activeTab === 'upload'
-            ? 'bg-white text-blue-600 font-medium shadow-sm'
+            ? 'bg-white text-indigo-600 font-medium shadow-sm'
             : 'text-gray-600 hover:bg-white/60 hover:text-gray-900'}"
         >
           上传脚本
@@ -285,7 +285,7 @@
           <button
             onclick={() => switchTab('review')}
             class="w-full text-left px-3 py-2 text-sm rounded-md transition-colors {activeTab === 'review'
-              ? 'bg-white text-blue-600 font-medium shadow-sm'
+              ? 'bg-white text-indigo-600 font-medium shadow-sm'
               : 'text-gray-600 hover:bg-white/60 hover:text-gray-900'}"
           >
             审核管理
@@ -303,7 +303,7 @@
         <button
           onclick={() => { filterLang = ''; onFilterChange(); }}
           class="w-full text-left px-2 py-1 text-xs rounded transition-colors {!filterLang
-            ? 'bg-blue-50 text-blue-600 font-medium'
+            ? 'bg-indigo-50 text-indigo-600 font-medium'
             : 'text-gray-500 hover:bg-gray-100'}"
         >
           全部语言
@@ -312,7 +312,7 @@
           <button
             onclick={() => { filterLang = lt.name; onFilterChange(); }}
             class="w-full text-left px-2 py-1 text-xs rounded transition-colors {filterLang === lt.name
-              ? 'bg-blue-50 text-blue-600 font-medium'
+              ? 'bg-indigo-50 text-indigo-600 font-medium'
               : 'text-gray-500 hover:bg-gray-100'}"
           >
             {lt.name}
@@ -328,7 +328,7 @@
           <button
             onclick={() => { filterTag = ''; onFilterChange(); }}
             class="px-2 py-0.5 text-[10px] rounded-full transition-colors {!filterTag
-              ? 'bg-blue-50 text-blue-600 font-medium'
+              ? 'bg-indigo-50 text-indigo-600 font-medium'
               : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}"
           >
             全部
@@ -337,7 +337,7 @@
             <button
               onclick={() => { filterTag = at.name; onFilterChange(); }}
               class="px-2 py-0.5 text-[10px] rounded-full transition-colors {filterTag === at.name
-                ? 'bg-blue-50 text-blue-600 font-medium'
+                ? 'bg-indigo-50 text-indigo-600 font-medium'
                 : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}"
             >
               {at.name}
@@ -366,7 +366,7 @@
           </div>
           <button
             onclick={onFilterChange}
-            class="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-600 transition-colors"
           >
             搜索
           </button>
@@ -393,10 +393,10 @@
               {@const lang = getLanguageTag(script.tags)}
               <button
                 onclick={() => openDetail(script.id)}
-                class="text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-sm transition-all group"
+                class="text-left bg-white border border-gray-200 rounded-xl p-4 hover:border-indigo-300 hover:shadow-sm transition-all group"
               >
                 <div class="flex items-start justify-between gap-2 mb-2">
-                  <h3 class="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                  <h3 class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1">
                     {script.title}
                   </h3>
                   {#if lang}
@@ -515,7 +515,7 @@
           <button
             onclick={handleUpload}
             disabled={!uploadTitle.trim() || !uploadContent.trim() || uploading}
-            class="px-6 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            class="px-6 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {uploading ? '提交中...' : '提交审核'}
           </button>
@@ -660,7 +660,7 @@
           {/if}
           <button
             onclick={() => copyContent(selectedScript!.content, 'raw')}
-            class="px-3 py-1.5 text-xs font-medium border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors"
+            class="px-3 py-1.5 text-xs font-medium border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-50 transition-colors"
           >
             {copied === 'raw' ? '✓ 已复制' : '复制'}
           </button>
