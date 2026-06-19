@@ -3,6 +3,7 @@
   import { adminStore } from '$lib/stores/admin';
   import AdminFeatSidebar from '$lib/components/admin-feat/AdminFeatSidebar.svelte';
   import LlmApiTester from '$lib/components/admin-feat/LlmApiTester.svelte';
+  import ChatPanel from '$lib/components/admin-feat/ChatPanel.svelte';
 
   let isAdmin = $state(false);
   let activeTab = $state('llm-api-test');
@@ -42,6 +43,9 @@
     <div class="flex-1 p-6 overflow-y-auto">
       {#if activeTab === 'llm-api-test'}
         <LlmApiTester />
+      {/if}
+      {#if activeTab === 'chat'}
+        <ChatPanel />
       {/if}
     </div>
   </div>

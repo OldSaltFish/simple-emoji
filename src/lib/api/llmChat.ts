@@ -15,7 +15,10 @@ export interface ChatModelSource {
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
+  /** 纯文本内容（无图片时使用） */
   content: string;
+  /** 图片 URL 或 base64（仅 user 消息） */
+  images?: string[];
 }
 
 const CUSTOM_MODELS_KEY = 'llm-chat-custom-models';
@@ -82,10 +85,24 @@ class LlmChatApi {
       'Authorization': `Bearer ${src.api_key}`,
     };
 
+    // OpenAI vision 格式：有图片时 content 为数组
+    const openaiMessages = messages.map((m) => {
+      if (m.images && m.images.length > 0) {
+        return {
+          role: m.role,
+          content: [
+            { type: 'text' as const, text: m.content || '' },
+            ...m.images.map((img) => ({ type: 'image_url' as const, image_url: { url: img } })),
+          ],
+        };
+      }
+      return { role: m.role, content: m.content };
+    });
+
     const resp = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ model, messages, stream: true }),
+      body: JSON.stringify({ model, messages: openaiMessages, stream: true }),
     });
 
     if (!resp.ok || !resp.body) {

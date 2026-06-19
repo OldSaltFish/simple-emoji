@@ -3,6 +3,7 @@
 
   const menuItems = [
     { id: 'llm-api-test', name: 'LLM 密钥管理', icon: '🔑' },
+    { id: 'chat', name: '模型对话', icon: '💬' },
   ];
 </script>
 
